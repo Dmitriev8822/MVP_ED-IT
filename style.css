@@ -1,0 +1,222 @@
+:root {
+  --c-white: #ffffff;
+  --c-light: #a1a7e5;
+  --c-pink: #c07cac;
+  --c-wine: #682554;
+  --c-navy: #353962;
+  --c-black: #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: radial-gradient(circle at 20% 10%, var(--c-navy), var(--c-black) 70%);
+  color: var(--c-white);
+  min-height: 100vh;
+}
+
+.view {
+  display: none;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.view-active {
+  display: block;
+}
+
+#home-view {
+  position: relative;
+  overflow: hidden;
+}
+
+.starfield {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--c-white) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.25;
+  animation: drift 14s linear infinite;
+}
+
+@keyframes drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(40px); }
+}
+
+.hero-mark {
+  position: relative;
+  z-index: 2;
+  max-width: 520px;
+}
+
+.logo {
+  width: min(320px, 70vw);
+  margin-bottom: 0.8rem;
+}
+
+.hero-subtitle {
+  color: var(--c-light);
+  margin-bottom: 1rem;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-stats div,
+.profile-card,
+.placeholder-card,
+.material-card {
+  background: rgba(53, 57, 98, 0.5);
+  border: 1px solid rgba(161, 167, 229, 0.4);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+}
+
+.pixel-label,
+h1,
+h2,
+button {
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.03em;
+}
+
+.planet-map {
+  position: relative;
+  z-index: 2;
+  height: clamp(380px, 55vh, 560px);
+  margin-top: 1rem;
+}
+
+.planet {
+  position: absolute;
+  border: 2px solid var(--c-light);
+  color: var(--c-white);
+  cursor: pointer;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 30% 25%, var(--c-pink), var(--c-wine) 70%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.planet:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 24px rgba(192, 124, 172, 0.5);
+}
+
+.planet span {
+  pointer-events: none;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.planet-history { width: 190px; height: 190px; left: 5%; top: 12%; }
+.planet-modern { width: 160px; height: 160px; left: 40%; top: 8%; }
+.planet-future { width: 140px; height: 140px; right: 8%; top: 24%; }
+.planet-profile { width: 128px; height: 128px; left: 28%; bottom: 5%; }
+.planet-forum { width: 108px; height: 108px; right: 16%; bottom: 10%; }
+
+.back-btn,
+.primary-btn,
+.complete-btn {
+  border: 1px solid var(--c-light);
+  background: transparent;
+  color: var(--c-white);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.primary-btn,
+.complete-btn {
+  background: var(--c-wine);
+}
+
+.section-intro {
+  color: var(--c-light);
+  max-width: 760px;
+}
+
+.materials-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.material-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.material-card.reverse {
+  direction: rtl;
+}
+
+.material-card.reverse .material-text {
+  direction: ltr;
+}
+
+.material-img {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(161, 167, 229, 0.4);
+}
+
+.profile-grid {
+  display: flex;
+  gap: 1rem;
+}
+
+.profile-sections {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.progress-bar {
+  margin-top: 0.4rem;
+  background: #000000;
+  border: 1px solid var(--c-light);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-light), var(--c-pink));
+}
+
+.quiz-result {
+  min-height: 1.5rem;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .planet-map { height: 520px; }
+  .material-card,
+  .material-card.reverse {
+    grid-template-columns: 1fr;
+    direction: ltr;
+  }
+}
+
+@media (max-width: 640px) {
+  .view { padding: 1rem; }
+  .planet-history { width: 140px; height: 140px; left: 2%; top: 20%; }
+  .planet-modern { width: 126px; height: 126px; left: 42%; top: 12%; }
+  .planet-future { width: 112px; height: 112px; right: 2%; top: 30%; }
+  .planet-profile { width: 102px; height: 102px; left: 16%; bottom: 8%; }
+  .planet-forum { width: 88px; height: 88px; right: 14%; bottom: 16%; }
+}
