@@ -3,17 +3,58 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Космос.Rus — образовательная карта космонавтики</title>
+    <title>Космос.Rus — интерактивный прототип</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main id="app">
-      <section id="home-view" class="view view-active" aria-label="Главная карта планет">
-        <div class="starfield" aria-hidden="true"></div>
-
-        <div class="hero-mark">
+      <section id="auth-view" class="view view-active" aria-live="polite">
+        <div class="panel auth-panel">
           <img src="assets/logo.svg" alt="Логотип Космос.Rus" class="logo" />
-          <p class="hero-subtitle">Изучай российскую космонавтику через исследование планет</p>
+          <h1>Добро пожаловать в Космос.Rus</h1>
+          <p class="section-intro">Полный сценарий: регистрация → вход → ЛК → выполнение шагов → получение награды.</p>
+
+          <div class="auth-switch" role="tablist" aria-label="Выбор режима авторизации">
+            <button id="show-login" class="primary-btn is-active" role="tab" aria-selected="true">Вход</button>
+            <button id="show-register" class="primary-btn" role="tab" aria-selected="false">Регистрация</button>
+          </div>
+
+          <form id="login-form" class="auth-form">
+            <label>
+              Email
+              <input type="email" id="login-email" required placeholder="student@space.ru" />
+            </label>
+            <label>
+              Пароль
+              <input type="password" id="login-password" required minlength="4" placeholder="••••" />
+            </label>
+            <button type="submit" class="primary-btn">Войти</button>
+          </form>
+
+          <form id="register-form" class="auth-form hidden">
+            <label>
+              Имя
+              <input type="text" id="register-name" required placeholder="Иван Иванов" />
+            </label>
+            <label>
+              Email
+              <input type="email" id="register-email" required placeholder="student@space.ru" />
+            </label>
+            <label>
+              Пароль
+              <input type="password" id="register-password" required minlength="4" placeholder="Минимум 4 символа" />
+            </label>
+            <button type="submit" class="primary-btn">Создать аккаунт</button>
+          </form>
+
+          <p id="auth-message" class="quiz-result"></p>
+        </div>
+      </section>
+
+      <section id="cabinet-view" class="view" aria-live="polite">
+        <div class="hero-mark">
+          <h1>Личный кабинет</h1>
+          <p id="welcome-title" class="section-intro"></p>
           <div class="hero-stats">
             <div>
               <span class="pixel-label">Общий прогресс</span>
@@ -23,81 +64,28 @@
               <span class="pixel-label">Рейтинг</span>
               <strong id="overall-rating">0</strong>
             </div>
+            <div>
+              <span class="pixel-label">Награды</span>
+              <strong id="reward-count">0</strong>
+            </div>
           </div>
+          <button id="logout-btn" class="back-btn">Выйти</button>
         </div>
 
-        <div class="planet-map" id="planet-map" aria-label="Интерактивная карта разделов">
-          <button class="planet planet-history" data-section="history">
-            <span>История</span>
-          </button>
-          <button class="planet planet-modern" data-section="modern">
-            <span>Современность</span>
-          </button>
-          <button class="planet planet-future" data-section="future">
-            <span>Будущее</span>
-          </button>
-          <button class="planet planet-profile" data-view="profile-view">
-            <span>Профиль</span>
-          </button>
-          <button class="planet planet-forum" data-view="forum-view">
-            <span>Форум</span>
-          </button>
-        </div>
-      </section>
+        <div class="section-tabs" id="section-tabs"></div>
 
-      <section id="section-view" class="view" aria-live="polite">
-        <button class="back-btn" data-go-home>← На карту</button>
-        <article>
-          <h1 id="section-title"></h1>
+        <article class="panel">
+          <h2 id="section-title"></h2>
           <p id="section-description" class="section-intro"></p>
-          <div class="section-meta">
-            <span class="pixel-label">Прогресс раздела</span>
-            <strong id="section-progress">0%</strong>
-          </div>
-          <div id="materials-list" class="materials-list"></div>
-          <div class="section-actions">
-            <button id="start-quiz-btn" class="primary-btn">Начать квиз</button>
-          </div>
+          <div id="tasks-list" class="profile-sections"></div>
         </article>
-      </section>
 
-      <section id="quiz-view" class="view" aria-live="polite">
-        <button class="back-btn" data-back-section>← К разделу</button>
-        <article>
-          <h1 id="quiz-title"></h1>
-          <p id="quiz-subtitle" class="section-intro"></p>
-          <form id="quiz-form"></form>
-          <button id="submit-quiz-btn" class="primary-btn">Проверить ответы</button>
-          <p id="quiz-result" class="quiz-result"></p>
-        </article>
-      </section>
-
-      <section id="profile-view" class="view">
-        <button class="back-btn" data-go-home>← На карту</button>
-        <article>
-          <h1>Профиль исследователя</h1>
-          <div class="profile-grid">
-            <div class="profile-card">
-              <span class="pixel-label">Текущий рейтинг</span>
-              <strong id="profile-rating">0</strong>
-            </div>
-            <div class="profile-card">
-              <span class="pixel-label">Общий прогресс</span>
-              <strong id="profile-progress">0%</strong>
-            </div>
-          </div>
-          <div id="profile-sections" class="profile-sections"></div>
-        </article>
-      </section>
-
-      <section id="forum-view" class="view">
-        <button class="back-btn" data-go-home>← На карту</button>
-        <article>
-          <h1>Форум космо-клуба</h1>
-          <p class="section-intro">Раздел-заглушка для будущих обсуждений миссий, технологий и новостей отрасли.</p>
-          <div class="placeholder-card">
-            <p>🚀 Скоро здесь появятся тематические ветки, комментарии и обсуждения.</p>
-          </div>
+        <article class="panel reward-panel">
+          <h2>Получение награды</h2>
+          <p class="section-intro">Когда все разделы ЛК закрыты на 100%, можно забрать финальную награду.</p>
+          <button id="claim-reward-btn" class="primary-btn">Получить награду</button>
+          <p id="reward-message" class="quiz-result"></p>
+          <div id="reward-badges" class="reward-badges"></div>
         </article>
       </section>
     </main>

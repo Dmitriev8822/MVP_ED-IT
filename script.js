@@ -1,269 +1,291 @@
 (() => {
-  const STORAGE_KEY = 'kosmos_rus_state_v1';
+  const STORAGE_KEY = 'kosmos_proto_state_v2';
   const SECTION_IDS = Object.keys(SPACE_DATA.sections);
 
   const state = loadState();
-  let activeSectionId = null;
+  let activeSectionId = SECTION_IDS[0];
 
   const views = {
-    home: document.getElementById('home-view'),
-    section: document.getElementById('section-view'),
-    quiz: document.getElementById('quiz-view'),
-    profile: document.getElementById('profile-view'),
-    forum: document.getElementById('forum-view')
+    auth: document.getElementById('auth-view'),
+    cabinet: document.getElementById('cabinet-view')
   };
 
   const ui = {
+    showLogin: document.getElementById('show-login'),
+    showRegister: document.getElementById('show-register'),
+    loginForm: document.getElementById('login-form'),
+    registerForm: document.getElementById('register-form'),
+    authMessage: document.getElementById('auth-message'),
+    welcomeTitle: document.getElementById('welcome-title'),
     overallProgress: document.getElementById('overall-progress'),
     overallRating: document.getElementById('overall-rating'),
+    rewardCount: document.getElementById('reward-count'),
+    logoutBtn: document.getElementById('logout-btn'),
+    sectionTabs: document.getElementById('section-tabs'),
     sectionTitle: document.getElementById('section-title'),
     sectionDescription: document.getElementById('section-description'),
-    sectionProgress: document.getElementById('section-progress'),
-    materialsList: document.getElementById('materials-list'),
-    startQuizBtn: document.getElementById('start-quiz-btn'),
-    quizTitle: document.getElementById('quiz-title'),
-    quizSubtitle: document.getElementById('quiz-subtitle'),
-    quizForm: document.getElementById('quiz-form'),
-    submitQuizBtn: document.getElementById('submit-quiz-btn'),
-    quizResult: document.getElementById('quiz-result'),
-    profileRating: document.getElementById('profile-rating'),
-    profileProgress: document.getElementById('profile-progress'),
-    profileSections: document.getElementById('profile-sections')
+    tasksList: document.getElementById('tasks-list'),
+    claimRewardBtn: document.getElementById('claim-reward-btn'),
+    rewardMessage: document.getElementById('reward-message'),
+    rewardBadges: document.getElementById('reward-badges')
   };
 
-  function analytics(eventName, payload = {}) {
-    // Stub for future analytics integration.
-    console.log('[analytics]', eventName, payload);
+  function createInitialState() {
+    return {
+      users: [],
+      sessionEmail: null,
+      ratings: {},
+      sections: {},
+      rewards: {}
+    };
   }
 
   function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return createInitialState();
-    }
+    if (!raw) return createInitialState();
 
     try {
       const parsed = JSON.parse(raw);
       return {
-        rating: Number(parsed.rating) || 0,
-        sections: SECTION_IDS.reduce((acc, id) => {
-          const saved = parsed.sections?.[id] || {};
-          acc[id] = {
-            completedMaterials: Array.isArray(saved.completedMaterials) ? saved.completedMaterials : [],
-            quizCompleted: Boolean(saved.quizCompleted)
-          };
-          return acc;
-        }, {})
+        users: Array.isArray(parsed.users) ? parsed.users : [],
+        sessionEmail: parsed.sessionEmail || null,
+        ratings: parsed.ratings || {},
+        sections: parsed.sections || {},
+        rewards: parsed.rewards || {}
       };
-    } catch (error) {
+    } catch {
       return createInitialState();
     }
-  }
-
-  function createInitialState() {
-    return {
-      rating: 0,
-      sections: SECTION_IDS.reduce((acc, id) => {
-        acc[id] = { completedMaterials: [], quizCompleted: false };
-        return acc;
-      }, {})
-    };
   }
 
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
-  function showView(viewKey) {
+  function currentUser() {
+    return state.users.find((user) => user.email === state.sessionEmail) || null;
+  }
+
+  function ensureUserProgress(email) {
+    if (!state.sections[email]) {
+      state.sections[email] = SECTION_IDS.reduce((acc, sectionId) => {
+        acc[sectionId] = [];
+        return acc;
+      }, {});
+    }
+    if (typeof state.ratings[email] !== 'number') {
+      state.ratings[email] = 0;
+    }
+    if (!Array.isArray(state.rewards[email])) {
+      state.rewards[email] = [];
+    }
+  }
+
+  function showView(name) {
     Object.values(views).forEach((view) => view.classList.remove('view-active'));
-    views[viewKey].classList.add('view-active');
-    analytics('page_view', { view: viewKey });
+    views[name].classList.add('view-active');
   }
 
-  function calculateSectionProgress(sectionId) {
-    const data = SPACE_DATA.sections[sectionId];
-    const saved = state.sections[sectionId];
-    const totalUnits = data.materials.length + 1;
-    const doneMaterials = saved.completedMaterials.length;
-    const doneQuiz = saved.quizCompleted ? 1 : 0;
-    return Math.round(((doneMaterials + doneQuiz) / totalUnits) * 100);
+  function toggleAuth(mode) {
+    const isLogin = mode === 'login';
+    ui.loginForm.classList.toggle('hidden', !isLogin);
+    ui.registerForm.classList.toggle('hidden', isLogin);
+    ui.showLogin.classList.toggle('is-active', isLogin);
+    ui.showRegister.classList.toggle('is-active', !isLogin);
+    ui.authMessage.textContent = '';
   }
 
-  function calculateOverallProgress() {
-    const total = SECTION_IDS.reduce((acc, id) => acc + calculateSectionProgress(id), 0);
-    return Math.round(total / SECTION_IDS.length);
+  function calculateSectionProgress(email, sectionId) {
+    const done = state.sections[email][sectionId].length;
+    const total = SPACE_DATA.sections[sectionId].tasks.length;
+    return Math.round((done / total) * 100);
   }
 
-  function updateGlobalStats() {
-    const overall = calculateOverallProgress();
-    ui.overallProgress.textContent = `${overall}%`;
-    ui.overallRating.textContent = state.rating;
-    ui.profileProgress.textContent = `${overall}%`;
-    ui.profileRating.textContent = state.rating;
+  function calculateOverallProgress(email) {
+    const sum = SECTION_IDS.reduce((acc, sectionId) => acc + calculateSectionProgress(email, sectionId), 0);
+    return Math.round(sum / SECTION_IDS.length);
   }
 
-  function renderProfile() {
-    updateGlobalStats();
-    ui.profileSections.innerHTML = '';
+  function allSectionsCompleted(email) {
+    return SECTION_IDS.every((sectionId) => calculateSectionProgress(email, sectionId) === 100);
+  }
 
-    SECTION_IDS.forEach((id) => {
-      const section = SPACE_DATA.sections[id];
-      const progress = calculateSectionProgress(id);
-      const block = document.createElement('div');
-      block.className = 'profile-card';
-      block.innerHTML = `
-        <strong>${section.title}</strong>
-        <div class="pixel-label">Прогресс: ${progress}%</div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-      `;
-      ui.profileSections.appendChild(block);
+  function renderTabs(email) {
+    ui.sectionTabs.innerHTML = '';
+
+    SECTION_IDS.forEach((sectionId) => {
+      const data = SPACE_DATA.sections[sectionId];
+      const progress = calculateSectionProgress(email, sectionId);
+      const button = document.createElement('button');
+      button.className = `primary-btn section-tab ${activeSectionId === sectionId ? 'is-active' : ''}`;
+      button.textContent = `${data.title} • ${progress}%`;
+      button.addEventListener('click', () => {
+        activeSectionId = sectionId;
+        renderCabinet();
+      });
+      ui.sectionTabs.appendChild(button);
     });
   }
 
-  function renderSection(sectionId) {
-    activeSectionId = sectionId;
-    const section = SPACE_DATA.sections[sectionId];
-    const saved = state.sections[sectionId];
+  function renderSectionTasks(email) {
+    const section = SPACE_DATA.sections[activeSectionId];
+    const doneIds = state.sections[email][activeSectionId];
 
     ui.sectionTitle.textContent = section.title;
     ui.sectionDescription.textContent = section.description;
-    ui.sectionProgress.textContent = `${calculateSectionProgress(sectionId)}%`;
-    ui.materialsList.innerHTML = '';
+    ui.tasksList.innerHTML = '';
 
-    section.materials.forEach((material, index) => {
-      const isDone = saved.completedMaterials.includes(material.id);
-      const card = document.createElement('article');
-      card.className = `material-card ${index % 2 === 1 ? 'reverse' : ''}`;
+    section.tasks.forEach((task) => {
+      const done = doneIds.includes(task.id);
+      const card = document.createElement('div');
+      card.className = 'profile-card';
       card.innerHTML = `
-        <img class="material-img" src="${material.image}" alt="${material.title}" />
-        <div class="material-text">
-          <h2>${material.title}</h2>
-          <p>${material.text}</p>
-          <button class="complete-btn" data-material-id="${material.id}">
-            ${isDone ? 'Пройдено ✓' : 'Отметить как изученное'}
-          </button>
-        </div>
+        <strong>${task.label}</strong>
+        <div class="pixel-label">${done ? 'Статус: выполнено' : 'Статус: в процессе'}</div>
+        <button class="complete-btn" data-task-id="${task.id}">${done ? 'Готово ✓' : 'Отметить выполненным'}</button>
       `;
-      ui.materialsList.appendChild(card);
+      ui.tasksList.appendChild(card);
     });
-
-    analytics('material_open', { sectionId });
-    showView('section');
   }
 
-  function renderQuiz(sectionId) {
-    const section = SPACE_DATA.sections[sectionId];
-    ui.quizTitle.textContent = section.quiz.title;
-    ui.quizSubtitle.textContent = `Раздел: ${section.title}`;
-    ui.quizResult.textContent = '';
+  function renderRewards(email) {
+    const rewardIds = state.rewards[email];
+    ui.rewardCount.textContent = rewardIds.length;
+    ui.rewardBadges.innerHTML = '';
 
-    ui.quizForm.innerHTML = section.quiz.questions
-      .map(
-        (q, idx) => `
-          <fieldset class="material-card" style="grid-template-columns:1fr; margin: 0 0 0.8rem 0;">
-            <legend><strong>${idx + 1}. ${q.prompt}</strong></legend>
-            ${q.options
-              .map(
-                (option, optionIdx) => `
-              <label>
-                <input type="radio" name="${q.id}" value="${optionIdx}" required /> ${option}
-              </label>`
-              )
-              .join('')}
-          </fieldset>
-        `
-      )
-      .join('');
-
-    analytics('quiz_start', { sectionId });
-    showView('quiz');
+    rewardIds.forEach((rewardId) => {
+      const reward = Object.values(SPACE_DATA.rewards).find((item) => item.id === rewardId);
+      if (!reward) return;
+      const badge = document.createElement('div');
+      badge.className = 'profile-card';
+      badge.innerHTML = `<strong>${reward.title}</strong><div class="pixel-label">${reward.description}</div>`;
+      ui.rewardBadges.appendChild(badge);
+    });
   }
 
-  function completeMaterial(sectionId, materialId) {
-    const sectionState = state.sections[sectionId];
-    if (!sectionState.completedMaterials.includes(materialId)) {
-      sectionState.completedMaterials.push(materialId);
-      saveState();
-      updateGlobalStats();
-      analytics('material_complete', { sectionId, materialId });
-      renderSection(sectionId);
-    }
-  }
-
-  function completeQuiz(sectionId, score, total) {
-    const sectionState = state.sections[sectionId];
-    if (!sectionState.quizCompleted) {
-      sectionState.quizCompleted = true;
-      const delta = score * 10;
-      state.rating += delta;
-      analytics('rating_changed', { delta, rating: state.rating });
-    }
-
-    saveState();
-    updateGlobalStats();
-    renderProfile();
-    analytics('quiz_complete', { sectionId, score, total });
-  }
-
-  document.getElementById('planet-map').addEventListener('click', (event) => {
-    const btn = event.target.closest('.planet');
-    if (!btn) return;
-
-    if (btn.dataset.section) {
-      const sectionId = btn.dataset.section;
-      analytics('planet_click', { sectionId });
-      renderSection(sectionId);
+  function renderCabinet() {
+    const user = currentUser();
+    if (!user) {
+      showView('auth');
       return;
     }
 
-    if (btn.dataset.view) {
-      const viewId = btn.dataset.view;
-      analytics('planet_click', { viewId });
-      if (viewId === 'profile-view') {
-        renderProfile();
-        showView('profile');
-      }
-      if (viewId === 'forum-view') {
-        showView('forum');
-      }
+    ensureUserProgress(user.email);
+
+    const rating = state.ratings[user.email];
+    const progress = calculateOverallProgress(user.email);
+
+    ui.welcomeTitle.textContent = `${user.name}, ваш маршрут открыт. Заполните разделы ЛК и заберите награду.`;
+    ui.overallRating.textContent = rating;
+    ui.overallProgress.textContent = `${progress}%`;
+    ui.rewardMessage.textContent = '';
+
+    renderTabs(user.email);
+    renderSectionTasks(user.email);
+    renderRewards(user.email);
+
+    showView('cabinet');
+  }
+
+  function registerUser(name, email, password) {
+    const exists = state.users.some((user) => user.email === email);
+    if (exists) {
+      ui.authMessage.textContent = 'Пользователь с таким email уже существует.';
+      return;
     }
+
+    state.users.push({ name, email, password });
+    state.sessionEmail = email;
+    ensureUserProgress(email);
+    saveState();
+    renderCabinet();
+  }
+
+  function loginUser(email, password) {
+    const user = state.users.find((item) => item.email === email && item.password === password);
+    if (!user) {
+      ui.authMessage.textContent = 'Неверный email или пароль.';
+      return;
+    }
+
+    state.sessionEmail = user.email;
+    ensureUserProgress(user.email);
+    saveState();
+    renderCabinet();
+  }
+
+  function completeTask(taskId) {
+    const user = currentUser();
+    if (!user) return;
+
+    const list = state.sections[user.email][activeSectionId];
+    if (list.includes(taskId)) return;
+
+    list.push(taskId);
+    state.ratings[user.email] += 10;
+    saveState();
+    renderCabinet();
+  }
+
+  function claimReward() {
+    const user = currentUser();
+    if (!user) return;
+
+    if (!allSectionsCompleted(user.email)) {
+      ui.rewardMessage.textContent = 'Чтобы получить награду, завершите все разделы: история, проекты, карьера, достижения.';
+      return;
+    }
+
+    const rewardId = SPACE_DATA.rewards.final.id;
+    if (!state.rewards[user.email].includes(rewardId)) {
+      state.rewards[user.email].push(rewardId);
+      state.ratings[user.email] += 50;
+      ui.rewardMessage.textContent = 'Поздравляем! Награда получена, полный сценарий завершён.';
+      saveState();
+      renderCabinet();
+      return;
+    }
+
+    ui.rewardMessage.textContent = 'Награда уже получена ранее.';
+  }
+
+  ui.showLogin.addEventListener('click', () => toggleAuth('login'));
+  ui.showRegister.addEventListener('click', () => toggleAuth('register'));
+
+  ui.registerForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = document.getElementById('register-name').value.trim();
+    const email = document.getElementById('register-email').value.trim().toLowerCase();
+    const password = document.getElementById('register-password').value;
+    registerUser(name, email, password);
   });
 
-  ui.materialsList.addEventListener('click', (event) => {
-    const btn = event.target.closest('.complete-btn');
-    if (!btn || !activeSectionId) return;
-    completeMaterial(activeSectionId, btn.dataset.materialId);
+  ui.loginForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+    loginUser(email, password);
   });
 
-  ui.startQuizBtn.addEventListener('click', () => {
-    if (!activeSectionId) return;
-    renderQuiz(activeSectionId);
+  ui.tasksList.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-task-id]');
+    if (!btn) return;
+    completeTask(btn.dataset.taskId);
   });
 
-  ui.submitQuizBtn.addEventListener('click', () => {
-    if (!activeSectionId) return;
-    const section = SPACE_DATA.sections[activeSectionId];
-    const formData = new FormData(ui.quizForm);
-    let score = 0;
+  ui.claimRewardBtn.addEventListener('click', claimReward);
 
-    section.quiz.questions.forEach((q) => {
-      const answer = Number(formData.get(q.id));
-      if (answer === q.answer) score += 1;
-    });
-
-    ui.quizResult.textContent = `Результат: ${score} из ${section.quiz.questions.length}`;
-    completeQuiz(activeSectionId, score, section.quiz.questions.length);
+  ui.logoutBtn.addEventListener('click', () => {
+    state.sessionEmail = null;
+    saveState();
+    showView('auth');
   });
 
-  document.querySelectorAll('[data-go-home]').forEach((btn) => {
-    btn.addEventListener('click', () => showView('home'));
-  });
-
-  document.querySelector('[data-back-section]').addEventListener('click', () => {
-    if (activeSectionId) renderSection(activeSectionId);
-  });
-
-  updateGlobalStats();
-  renderProfile();
-  analytics('page_view', { view: 'home' });
+  if (state.sessionEmail) {
+    ensureUserProgress(state.sessionEmail);
+    renderCabinet();
+  } else {
+    showView('auth');
+    toggleAuth('login');
+  }
 })();
