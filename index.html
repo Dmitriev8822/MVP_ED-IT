@@ -3,117 +3,133 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Orbit MVP — статический космический портал</title>
+    <title>Orbit EDU MVP</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main id="app" class="app">
-      <section id="auth-view" class="view view-active" aria-live="polite">
-        <div class="panel auth-panel">
-          <h1>Orbit MVP</h1>
-          <p class="muted">Вход и регистрация для персонального трека изучения космоса.</p>
+    <main class="app" id="app">
+      <p class="route-indicator">Маршрут: <span id="route-label">/</span></p>
 
-          <div class="switcher" role="tablist" aria-label="Авторизация">
-            <button id="show-login" class="btn btn-solid is-active" type="button">Вход</button>
-            <button id="show-register" class="btn" type="button">Регистрация</button>
+      <section id="auth-view" class="view">
+        <article class="panel auth-panel">
+          <h1>Orbit EDU</h1>
+          <p class="muted">MVP интерактивного образовательного сайта о космосе.</p>
+
+          <div class="switcher" role="tablist" aria-label="Auth switch">
+            <button type="button" id="show-login" class="btn btn-solid">Вход</button>
+            <button type="button" id="show-register" class="btn">Регистрация</button>
           </div>
 
           <form id="login-form" class="form-grid">
-            <label>Email<input id="login-email" type="email" required placeholder="cosmo@orbit.local" /></label>
-            <label>Пароль<input id="login-password" type="password" minlength="4" required placeholder="••••" /></label>
-            <button class="btn btn-solid" type="submit">Войти</button>
+            <label>Email<input id="login-email" type="email" required /></label>
+            <label>Пароль<input id="login-password" type="password" minlength="4" required /></label>
+            <button type="submit" class="btn btn-solid">Войти</button>
           </form>
 
           <form id="register-form" class="form-grid hidden">
-            <label>Имя<input id="register-name" type="text" required placeholder="Курсант" /></label>
-            <label>Email<input id="register-email" type="email" required placeholder="cosmo@orbit.local" /></label>
-            <label>Пароль<input id="register-password" type="password" minlength="4" required placeholder="Минимум 4 символа" /></label>
-            <button class="btn btn-solid" type="submit">Создать аккаунт</button>
+            <label>Имя<input id="register-name" type="text" required /></label>
+            <label>Email<input id="register-email" type="email" required /></label>
+            <label>Пароль<input id="register-password" type="password" minlength="4" required /></label>
+            <button type="submit" class="btn btn-solid">Создать аккаунт</button>
           </form>
 
           <p id="auth-message" class="status"></p>
-        </div>
+        </article>
       </section>
 
-      <section id="main-view" class="view" aria-live="polite">
-        <div class="topline">
-          <div>
-            <h2 id="welcome-text">Маршрут участника</h2>
-            <p class="muted">Открыть сайт → войти → выбрать раздел → изучить материалы → пройти тест.</p>
+      <section id="main-view" class="view">
+        <article class="hero panel starfield">
+          <div class="topline">
+            <div>
+              <h2 id="welcome-text">Космический маршрут</h2>
+              <p class="muted">Без классического header: навигация через планеты.</p>
+            </div>
+            <div class="topline-actions">
+              <button id="goto-profile" class="btn" type="button">Профиль</button>
+              <button id="logout-btn" class="btn" type="button">Выйти</button>
+            </div>
           </div>
-          <div class="topline-actions">
-            <button id="open-profile-btn" class="btn" type="button">Личный кабинет</button>
-            <button id="open-forum-btn" class="btn" type="button">Форум</button>
-            <button id="logout-btn" class="btn" type="button">Выйти</button>
-          </div>
-        </div>
 
-        <section class="news-highlight panel" aria-labelledby="news-title">
-          <div class="highlight-head">
-            <h3 id="news-title">Новости миссий</h3>
-            <button id="jump-news-btn" class="btn btn-solid" type="button">Открыть раздел новостей</button>
-          </div>
-          <div id="headline-news" class="headline-grid"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="planets-title">
-          <h3 id="planets-title">Навигация по орбитам</h3>
-          <p class="muted">Кликайте по планетам, чтобы открыть разделы.</p>
           <div id="planet-nav" class="planet-nav"></div>
-        </section>
+        </article>
 
-        <section class="panel">
+        <article id="section-view" class="panel">
           <h3 id="section-title">Раздел</h3>
           <p id="section-description" class="muted"></p>
-          <div id="section-content" class="content-grid"></div>
-        </section>
+          <div id="section-progress" class="muted"></div>
+          <div id="section-content" class="stack"></div>
+        </article>
+
+        <article class="panel" id="forum-preview">
+          <div class="topline">
+            <div>
+              <h3>Упрощённый форум</h3>
+              <p class="muted">Это второй экран при пролистывании главной вниз.</p>
+            </div>
+            <button id="goto-forum" class="btn btn-solid" type="button">Открыть /forum</button>
+          </div>
+          <div id="forum-preview-list" class="stack"></div>
+        </article>
       </section>
 
-      <section id="forum-view" class="view" aria-live="polite">
-        <div class="topline">
-          <h2>Простой форум</h2>
-          <button id="forum-back-btn" class="btn" type="button">Назад</button>
-        </div>
+      <section id="quiz-view" class="view">
         <article class="panel">
+          <div class="topline">
+            <h2 id="quiz-title">Тест</h2>
+            <button id="quiz-back" class="btn" type="button">Назад к разделу</button>
+          </div>
+          <p id="quiz-description" class="muted"></p>
+          <form id="quiz-form" class="stack"></form>
+          <p id="quiz-result" class="status"></p>
+        </article>
+      </section>
+
+      <section id="forum-view" class="view">
+        <article class="panel">
+          <div class="topline">
+            <h2>Форум</h2>
+            <button id="forum-back" class="btn" type="button">К главной</button>
+          </div>
+
           <form id="forum-form" class="form-grid inline-form">
-            <label>Тема<input id="forum-topic" type="text" required placeholder="Например: спутники связи" /></label>
-            <label>Сообщение<textarea id="forum-message" rows="3" required placeholder="Поделитесь наблюдением"></textarea></label>
-            <button class="btn btn-solid" type="submit">Опубликовать</button>
+            <label>Тема<input id="forum-topic" type="text" required /></label>
+            <label>Сообщение<textarea id="forum-message" rows="3" required></textarea></label>
+            <button type="submit" class="btn btn-solid">Опубликовать</button>
           </form>
+
           <div id="forum-list" class="stack"></div>
         </article>
       </section>
 
-      <section id="profile-view" class="view" aria-live="polite">
-        <div class="topline">
-          <h2>Личный кабинет</h2>
-          <button id="profile-back-btn" class="btn" type="button">К главной</button>
-        </div>
+      <section id="profile-view" class="view">
+        <article class="panel">
+          <div class="topline">
+            <h2>Профиль</h2>
+            <button id="profile-back" class="btn" type="button">К главной</button>
+          </div>
 
-        <article class="panel metrics">
-          <div><span class="k">Баллы</span><strong id="points-value">0</strong></div>
-          <div><span class="k">Прогресс</span><strong id="progress-value">0%</strong></div>
-          <div><span class="k">Награды</span><strong id="rewards-value">0</strong></div>
+          <div class="metrics">
+            <div><span class="k">Баллы</span><strong id="points-value">0</strong></div>
+            <div><span class="k">Изучено планет</span><strong id="planets-value">0</strong></div>
+            <div><span class="k">Награды</span><strong id="rewards-value">0</strong></div>
+          </div>
+
+          <div id="profile-subnav" class="profile-sections"></div>
         </article>
 
         <article class="panel">
-          <h3>Разделы кабинета</h3>
-          <div id="profile-sections" class="profile-sections"></div>
+          <h3 id="profile-subtitle">История</h3>
+          <div id="profile-subcontent" class="stack"></div>
         </article>
 
         <article class="panel">
-          <h3>Загрузка достижения</h3>
+          <h3>Загрузить достижение</h3>
           <form id="achievement-form" class="form-grid inline-form">
-            <label>Название<input id="achievement-title" type="text" required placeholder="Мой сертификат" /></label>
+            <label>Название<input id="achievement-title" type="text" required /></label>
             <label>Файл<input id="achievement-file" type="file" required /></label>
-            <button class="btn btn-solid" type="submit">Сохранить достижение</button>
+            <button type="submit" class="btn btn-solid">Сохранить</button>
           </form>
           <div id="uploaded-achievements" class="stack"></div>
-        </article>
-
-        <article class="panel">
-          <h3>История действий</h3>
-          <div id="action-log" class="stack"></div>
         </article>
       </section>
     </main>
