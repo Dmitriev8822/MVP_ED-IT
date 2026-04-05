@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" fill="#000000"/>
+  <circle cx="520" cy="70" r="24" fill="#FFFFFF"/>
+  <circle cx="210" cy="190" r="90" fill="#682554"/>
+  <circle cx="210" cy="190" r="36" fill="#C07CAC"/>
+  <text x="28" y="44" fill="#FFFFFF" font-size="28" font-family="Courier New, monospace">Восток-1</text>
+</svg>

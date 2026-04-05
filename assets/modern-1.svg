@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" fill="#353962"/>
+  <rect x="170" y="165" width="300" height="30" fill="#A1A7E5"/>
+  <rect x="300" y="115" width="40" height="130" fill="#C07CAC"/>
+  <text x="24" y="44" fill="#FFFFFF" font-size="28" font-family="Courier New, monospace">Российский сегмент МКС</text>
+</svg>
