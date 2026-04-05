@@ -3,89 +3,141 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Космос.Rus — интерактивный прототип</title>
+    <title>SPACE MVP — чёрно-белый портал</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main id="app">
+    <main class="app-shell">
       <section id="auth-view" class="view view-active" aria-live="polite">
-        <div class="panel auth-panel">
-          <img src="assets/logo.svg" alt="Логотип Космос.Rus" class="logo" />
-          <h1>Добро пожаловать в Космос.Rus</h1>
-          <p class="section-intro">Полный сценарий: регистрация → вход → ЛК → выполнение шагов → получение награды.</p>
+        <div class="card auth-card">
+          <h1>SPACE MVP</h1>
+          <p class="muted">Вход в учебный космический портал</p>
 
-          <div class="auth-switch" role="tablist" aria-label="Выбор режима авторизации">
-            <button id="show-login" class="primary-btn is-active" role="tab" aria-selected="true">Вход</button>
-            <button id="show-register" class="primary-btn" role="tab" aria-selected="false">Регистрация</button>
+          <div class="auth-tabs" role="tablist" aria-label="Авторизация">
+            <button id="tab-login" class="btn btn-solid is-active" role="tab" aria-selected="true">Вход</button>
+            <button id="tab-register" class="btn" role="tab" aria-selected="false">Регистрация</button>
           </div>
 
-          <form id="login-form" class="auth-form">
+          <form id="login-form" class="stack">
             <label>
               Email
-              <input type="email" id="login-email" required placeholder="student@space.ru" />
+              <input id="login-email" type="email" required placeholder="pilot@space.local" />
             </label>
             <label>
               Пароль
-              <input type="password" id="login-password" required minlength="4" placeholder="••••" />
+              <input id="login-password" type="password" required minlength="4" placeholder="••••" />
             </label>
-            <button type="submit" class="primary-btn">Войти</button>
+            <button type="submit" class="btn btn-solid">Войти</button>
           </form>
 
-          <form id="register-form" class="auth-form hidden">
+          <form id="register-form" class="stack hidden">
             <label>
               Имя
-              <input type="text" id="register-name" required placeholder="Иван Иванов" />
+              <input id="register-name" type="text" required placeholder="Имя Фамилия" />
             </label>
             <label>
               Email
-              <input type="email" id="register-email" required placeholder="student@space.ru" />
+              <input id="register-email" type="email" required placeholder="pilot@space.local" />
             </label>
             <label>
               Пароль
-              <input type="password" id="register-password" required minlength="4" placeholder="Минимум 4 символа" />
+              <input id="register-password" type="password" required minlength="4" placeholder="минимум 4 символа" />
             </label>
-            <button type="submit" class="primary-btn">Создать аккаунт</button>
+            <button type="submit" class="btn btn-solid">Создать аккаунт</button>
           </form>
 
-          <p id="auth-message" class="quiz-result"></p>
+          <p id="auth-message" class="feedback" aria-live="polite"></p>
         </div>
       </section>
 
-      <section id="cabinet-view" class="view" aria-live="polite">
-        <div class="hero-mark">
-          <h1>Личный кабинет</h1>
-          <p id="welcome-title" class="section-intro"></p>
-          <div class="hero-stats">
-            <div>
-              <span class="pixel-label">Общий прогресс</span>
-              <strong id="overall-progress">0%</strong>
-            </div>
-            <div>
-              <span class="pixel-label">Рейтинг</span>
-              <strong id="overall-rating">0</strong>
-            </div>
-            <div>
-              <span class="pixel-label">Награды</span>
-              <strong id="reward-count">0</strong>
-            </div>
-          </div>
-          <button id="logout-btn" class="back-btn">Выйти</button>
+      <section id="home-view" class="view" aria-live="polite">
+        <div class="hero-grid">
+          <article class="card mission-card">
+            <h2>Маршрут миссии</h2>
+            <p class="muted">Кликните по планете и переходите в раздел: история, современность, новости, истории успеха или тест.</p>
+            <div id="planet-nav" class="planet-nav" aria-label="Навигация по разделам"></div>
+          </article>
+
+          <article class="card news-spotlight">
+            <h2>Новости</h2>
+            <p class="muted">Самый заметный блок на главном экране.</p>
+            <div id="top-news" class="news-list"></div>
+            <button id="go-news" class="btn">Открыть все новости</button>
+          </article>
         </div>
 
-        <div class="section-tabs" id="section-tabs"></div>
-
-        <article class="panel">
-          <h2 id="section-title"></h2>
-          <p id="section-description" class="section-intro"></p>
-          <div id="tasks-list" class="profile-sections"></div>
+        <article class="card quick-actions">
+          <h3>Быстрые действия</h3>
+          <div class="actions-row">
+            <button class="btn" data-nav="forum">Форум</button>
+            <button class="btn" data-nav="cabinet">Личный кабинет</button>
+            <button id="logout-btn" class="btn">Выйти</button>
+          </div>
         </article>
+      </section>
 
-        <article class="panel reward-panel">
-          <h2>Получение награды</h2>
-          <p class="section-intro">Когда все разделы ЛК закрыты на 100%, можно забрать финальную награду.</p>
-          <button id="claim-reward-btn" class="primary-btn">Получить награду</button>
-          <p id="reward-message" class="quiz-result"></p>
-          <div id="reward-badges" class="reward-badges"></div>
+      <section id="section-view" class="view" aria-live="polite">
+        <article class="card">
+          <div class="section-head">
+            <button class="btn" data-nav="home">← На главную</button>
+            <button class="btn" data-nav="cabinet">Личный кабинет</button>
+          </div>
+          <h2 id="section-title"></h2>
+          <p id="section-description" class="muted"></p>
+          <div id="section-content" class="section-content"></div>
+        </article>
+      </section>
+
+      <section id="forum-view" class="view" aria-live="polite">
+        <article class="card">
+          <div class="section-head">
+            <button class="btn" data-nav="home">← На главную</button>
+            <button class="btn" data-nav="cabinet">Личный кабинет</button>
+          </div>
+          <h2>Форум</h2>
+          <p class="muted">Простой форум для обсуждений.</p>
+          <form id="forum-form" class="stack forum-form">
+            <label>
+              Тема
+              <input id="forum-title" type="text" required maxlength="80" placeholder="Например: Как готовиться к тесту?" />
+            </label>
+            <label>
+              Сообщение
+              <textarea id="forum-message" rows="4" required maxlength="400" placeholder="Поделитесь идеей"></textarea>
+            </label>
+            <button type="submit" class="btn btn-solid">Опубликовать</button>
+          </form>
+          <div id="forum-list" class="forum-list"></div>
+        </article>
+      </section>
+
+      <section id="cabinet-view" class="view" aria-live="polite">
+        <article class="card">
+          <div class="section-head">
+            <button class="btn" data-nav="home">← На главную</button>
+            <button id="cabinet-logout" class="btn">Выйти</button>
+          </div>
+
+          <h2>Личный кабинет</h2>
+          <p id="welcome-line" class="muted"></p>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span>Баллы</span>
+              <strong id="stat-points">0</strong>
+            </div>
+            <div class="stat-box">
+              <span>Прогресс</span>
+              <strong id="stat-progress">0%</strong>
+            </div>
+            <div class="stat-box">
+              <span>Награды</span>
+              <strong id="stat-awards">0</strong>
+            </div>
+          </div>
+
+          <div class="subtabs" id="cabinet-tabs"></div>
+          <div id="cabinet-content" class="section-content"></div>
         </article>
       </section>
     </main>

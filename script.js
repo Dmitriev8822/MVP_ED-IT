@@ -1,60 +1,64 @@
 (() => {
-  const STORAGE_KEY = 'kosmos_proto_state_v2';
-  const SECTION_IDS = Object.keys(SPACE_DATA.sections);
-
-  const state = loadState();
-  let activeSectionId = SECTION_IDS[0];
+  const STORAGE_KEY = 'space_mvp_bw_v1';
 
   const views = {
     auth: document.getElementById('auth-view'),
+    home: document.getElementById('home-view'),
+    section: document.getElementById('section-view'),
+    forum: document.getElementById('forum-view'),
     cabinet: document.getElementById('cabinet-view')
   };
 
   const ui = {
-    showLogin: document.getElementById('show-login'),
-    showRegister: document.getElementById('show-register'),
+    tabLogin: document.getElementById('tab-login'),
+    tabRegister: document.getElementById('tab-register'),
     loginForm: document.getElementById('login-form'),
     registerForm: document.getElementById('register-form'),
     authMessage: document.getElementById('auth-message'),
-    welcomeTitle: document.getElementById('welcome-title'),
-    overallProgress: document.getElementById('overall-progress'),
-    overallRating: document.getElementById('overall-rating'),
-    rewardCount: document.getElementById('reward-count'),
+    planetNav: document.getElementById('planet-nav'),
+    topNews: document.getElementById('top-news'),
+    goNews: document.getElementById('go-news'),
     logoutBtn: document.getElementById('logout-btn'),
-    sectionTabs: document.getElementById('section-tabs'),
     sectionTitle: document.getElementById('section-title'),
     sectionDescription: document.getElementById('section-description'),
-    tasksList: document.getElementById('tasks-list'),
-    claimRewardBtn: document.getElementById('claim-reward-btn'),
-    rewardMessage: document.getElementById('reward-message'),
-    rewardBadges: document.getElementById('reward-badges')
+    sectionContent: document.getElementById('section-content'),
+    forumForm: document.getElementById('forum-form'),
+    forumList: document.getElementById('forum-list'),
+    cabinetLogout: document.getElementById('cabinet-logout'),
+    welcomeLine: document.getElementById('welcome-line'),
+    statPoints: document.getElementById('stat-points'),
+    statProgress: document.getElementById('stat-progress'),
+    statAwards: document.getElementById('stat-awards'),
+    cabinetTabs: document.getElementById('cabinet-tabs'),
+    cabinetContent: document.getElementById('cabinet-content')
   };
 
-  function createInitialState() {
+  const state = loadState();
+  let activeSectionId = 'history';
+  let activeCabinetTab = 'history';
+
+  function createDefaultState() {
     return {
       users: [],
-      sessionEmail: null,
-      ratings: {},
-      sections: {},
-      rewards: {}
+      session: null,
+      forumPosts: [
+        { id: crypto.randomUUID(), author: 'Модератор', title: 'Добро пожаловать', message: 'Расскажите, какой раздел вы изучаете сейчас.', createdAt: new Date().toISOString() }
+      ]
     };
   }
 
   function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createInitialState();
-
+    if (!raw) return createDefaultState();
     try {
       const parsed = JSON.parse(raw);
       return {
         users: Array.isArray(parsed.users) ? parsed.users : [],
-        sessionEmail: parsed.sessionEmail || null,
-        ratings: parsed.ratings || {},
-        sections: parsed.sections || {},
-        rewards: parsed.rewards || {}
+        session: parsed.session || null,
+        forumPosts: Array.isArray(parsed.forumPosts) ? parsed.forumPosts : []
       };
     } catch {
-      return createInitialState();
+      return createDefaultState();
     }
   }
 
@@ -62,230 +66,545 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
+  function ensureUserProgress(user) {
+    if (!user.progress) {
+      user.progress = {
+        points: 0,
+        completedSections: [],
+        completedQuiz: false,
+        quizScore: 0,
+        awards: [],
+        uploadedAchievements: [],
+        actionLog: []
+      };
+    }
+  }
+
+  function nowLocalString() {
+    return new Date().toLocaleString('ru-RU');
+  }
+
+  function pushAction(user, action) {
+    ensureUserProgress(user);
+    user.progress.actionLog.unshift(`${nowLocalString()} — ${action}`);
+    user.progress.actionLog = user.progress.actionLog.slice(0, 25);
+  }
+
+  function findUserByEmail(email) {
+    return state.users.find((user) => user.email === email) || null;
+  }
+
   function currentUser() {
-    return state.users.find((user) => user.email === state.sessionEmail) || null;
+    if (!state.session) return null;
+    return findUserByEmail(state.session);
   }
 
-  function ensureUserProgress(email) {
-    if (!state.sections[email]) {
-      state.sections[email] = SECTION_IDS.reduce((acc, sectionId) => {
-        acc[sectionId] = [];
-        return acc;
-      }, {});
-    }
-    if (typeof state.ratings[email] !== 'number') {
-      state.ratings[email] = 0;
-    }
-    if (!Array.isArray(state.rewards[email])) {
-      state.rewards[email] = [];
-    }
-  }
-
-  function showView(name) {
+  function switchView(target) {
     Object.values(views).forEach((view) => view.classList.remove('view-active'));
-    views[name].classList.add('view-active');
+    views[target].classList.add('view-active');
   }
 
-  function toggleAuth(mode) {
+  function switchAuth(mode) {
     const isLogin = mode === 'login';
     ui.loginForm.classList.toggle('hidden', !isLogin);
     ui.registerForm.classList.toggle('hidden', isLogin);
-    ui.showLogin.classList.toggle('is-active', isLogin);
-    ui.showRegister.classList.toggle('is-active', !isLogin);
+    ui.tabLogin.classList.toggle('is-active', isLogin);
+    ui.tabRegister.classList.toggle('is-active', !isLogin);
     ui.authMessage.textContent = '';
   }
 
-  function calculateSectionProgress(email, sectionId) {
-    const done = state.sections[email][sectionId].length;
-    const total = SPACE_DATA.sections[sectionId].tasks.length;
-    return Math.round((done / total) * 100);
+  function guardedNavigate(target) {
+    const user = currentUser();
+    if (!user && target !== 'auth') {
+      switchView('auth');
+      return;
+    }
+
+    if (target === 'home') {
+      renderHome();
+      switchView('home');
+      return;
+    }
+    if (target === 'forum') {
+      renderForum();
+      switchView('forum');
+      return;
+    }
+    if (target === 'cabinet') {
+      renderCabinet();
+      switchView('cabinet');
+      return;
+    }
+    switchView(target);
   }
 
-  function calculateOverallProgress(email) {
-    const sum = SECTION_IDS.reduce((acc, sectionId) => acc + calculateSectionProgress(email, sectionId), 0);
-    return Math.round(sum / SECTION_IDS.length);
+  function getProgressPercent(user) {
+    const total = SPACE_DATA.sections.length + 1;
+    const sectionDone = user.progress.completedSections.length;
+    const quizDone = user.progress.completedQuiz ? 1 : 0;
+    return Math.round(((sectionDone + quizDone) / total) * 100);
   }
 
-  function allSectionsCompleted(email) {
-    return SECTION_IDS.every((sectionId) => calculateSectionProgress(email, sectionId) === 100);
+  function grantAward(user, awardId) {
+    if (user.progress.awards.includes(awardId)) return;
+    const award = SPACE_DATA.awards.find((item) => item.id === awardId);
+    if (!award) return;
+    user.progress.awards.push(awardId);
+    user.progress.points += award.points;
+    pushAction(user, `Получена награда: ${award.title} (+${award.points} баллов)`);
   }
 
-  function renderTabs(email) {
-    ui.sectionTabs.innerHTML = '';
-
-    SECTION_IDS.forEach((sectionId) => {
-      const data = SPACE_DATA.sections[sectionId];
-      const progress = calculateSectionProgress(email, sectionId);
-      const button = document.createElement('button');
-      button.className = `primary-btn section-tab ${activeSectionId === sectionId ? 'is-active' : ''}`;
-      button.textContent = `${data.title} • ${progress}%`;
-      button.addEventListener('click', () => {
-        activeSectionId = sectionId;
-        renderCabinet();
-      });
-      ui.sectionTabs.appendChild(button);
+  function renderTopNews() {
+    ui.topNews.innerHTML = '';
+    SPACE_DATA.news.slice(0, 3).forEach((item) => {
+      const node = document.createElement('article');
+      node.className = 'news-item';
+      node.innerHTML = `<strong>${item.title}</strong><div class="muted">${item.date}</div>`;
+      ui.topNews.appendChild(node);
     });
   }
 
-  function renderSectionTasks(email) {
-    const section = SPACE_DATA.sections[activeSectionId];
-    const doneIds = state.sections[email][activeSectionId];
+  function renderPlanetNav() {
+    ui.planetNav.innerHTML = '';
+    SPACE_DATA.sections.forEach((section) => {
+      const button = document.createElement('button');
+      button.className = 'planet-btn';
+      button.textContent = section.title;
+      button.addEventListener('click', () => openSection(section.id));
+      ui.planetNav.appendChild(button);
+    });
+  }
 
+  function renderHome() {
+    renderPlanetNav();
+    renderTopNews();
+  }
+
+  function sectionById(id) {
+    return SPACE_DATA.sections.find((item) => item.id === id);
+  }
+
+  function openSection(sectionId) {
+    activeSectionId = sectionId;
+    renderSection(sectionId);
+    switchView('section');
+  }
+
+  function markSectionDone(sectionId) {
+    const user = currentUser();
+    if (!user) return;
+    if (!user.progress.completedSections.includes(sectionId)) {
+      user.progress.completedSections.push(sectionId);
+      user.progress.points += 20;
+      pushAction(user, `Раздел "${sectionById(sectionId).title}" изучен (+20 баллов)`);
+      saveState();
+    }
+  }
+
+  function renderSection(sectionId) {
+    const user = currentUser();
+    if (!user) return;
+
+    const section = sectionById(sectionId);
     ui.sectionTitle.textContent = section.title;
     ui.sectionDescription.textContent = section.description;
-    ui.tasksList.innerHTML = '';
+    ui.sectionContent.innerHTML = '';
 
-    section.tasks.forEach((task) => {
-      const done = doneIds.includes(task.id);
-      const card = document.createElement('div');
-      card.className = 'profile-card';
-      card.innerHTML = `
-        <strong>${task.label}</strong>
-        <div class="pixel-label">${done ? 'Статус: выполнено' : 'Статус: в процессе'}</div>
-        <button class="complete-btn" data-task-id="${task.id}">${done ? 'Готово ✓' : 'Отметить выполненным'}</button>
-      `;
-      ui.tasksList.appendChild(card);
+    if (section.id === 'news') {
+      SPACE_DATA.news.forEach((item) => {
+        const block = document.createElement('article');
+        block.className = 'content-block';
+        block.innerHTML = `<strong>${item.title}</strong><p class="muted">Дата: ${item.date}</p>`;
+        ui.sectionContent.appendChild(block);
+      });
+      markSectionDone('news');
+      return;
+    }
+
+    if (section.id === 'test') {
+      renderQuiz();
+      return;
+    }
+
+    section.blocks.forEach((text) => {
+      const block = document.createElement('article');
+      block.className = 'content-block';
+      block.textContent = text;
+      ui.sectionContent.appendChild(block);
     });
+
+    const doneBtn = document.createElement('button');
+    doneBtn.className = 'btn btn-solid';
+    doneBtn.textContent = 'Отметить изучение раздела';
+    doneBtn.addEventListener('click', () => {
+      markSectionDone(section.id);
+      doneBtn.disabled = true;
+      doneBtn.textContent = 'Раздел засчитан';
+    });
+    ui.sectionContent.appendChild(doneBtn);
   }
 
-  function renderRewards(email) {
-    const rewardIds = state.rewards[email];
-    ui.rewardCount.textContent = rewardIds.length;
-    ui.rewardBadges.innerHTML = '';
+  function renderQuiz() {
+    const user = currentUser();
+    if (!user) return;
 
-    rewardIds.forEach((rewardId) => {
-      const reward = Object.values(SPACE_DATA.rewards).find((item) => item.id === rewardId);
-      if (!reward) return;
-      const badge = document.createElement('div');
-      badge.className = 'profile-card';
-      badge.innerHTML = `<strong>${reward.title}</strong><div class="pixel-label">${reward.description}</div>`;
-      ui.rewardBadges.appendChild(badge);
+    const holder = document.createElement('div');
+    holder.className = 'content-block';
+
+    const title = document.createElement('p');
+    title.textContent = 'Выберите правильные ответы. Баллы за тест начисляются один раз.';
+    holder.appendChild(title);
+
+    let score = 0;
+
+    SPACE_DATA.quiz.forEach((q, idx) => {
+      const qWrap = document.createElement('div');
+      qWrap.className = 'content-block';
+      qWrap.innerHTML = `<strong>${idx + 1}. ${q.question}</strong>`;
+
+      q.options.forEach((opt) => {
+        const b = document.createElement('button');
+        b.className = 'btn quiz-option';
+        b.textContent = opt;
+        b.addEventListener('click', () => {
+          if (b.dataset.answered) return;
+          b.dataset.answered = '1';
+          if (opt === q.answer) {
+            score += 1;
+            b.textContent = `${opt} ✓`;
+          } else {
+            b.textContent = `${opt} ✕`;
+          }
+        });
+        qWrap.appendChild(b);
+      });
+
+      holder.appendChild(qWrap);
     });
+
+    const submit = document.createElement('button');
+    submit.className = 'btn btn-solid';
+    submit.textContent = 'Завершить тест';
+
+    const result = document.createElement('p');
+    result.className = 'feedback';
+
+    submit.addEventListener('click', () => {
+      if (!user.progress.completedQuiz) {
+        user.progress.completedQuiz = true;
+        user.progress.quizScore = score;
+        user.progress.points += score * 15;
+        pushAction(user, `Тест завершён: ${score}/${SPACE_DATA.quiz.length} (+${score * 15} баллов)`);
+        grantAward(user, 'award-test');
+      }
+
+      const fullRouteDone = SPACE_DATA.sections
+        .filter((s) => s.id !== 'test')
+        .every((s) => user.progress.completedSections.includes(s.id));
+
+      if (fullRouteDone && user.progress.completedQuiz) {
+        grantAward(user, 'award-route');
+      }
+
+      markSectionDone('test');
+      saveState();
+      result.textContent = `Результат: ${score}/${SPACE_DATA.quiz.length}. Проверьте награды в личном кабинете.`;
+    });
+
+    holder.appendChild(submit);
+    holder.appendChild(result);
+    ui.sectionContent.appendChild(holder);
+  }
+
+  function renderForum() {
+    ui.forumList.innerHTML = '';
+
+    state.forumPosts
+      .slice()
+      .reverse()
+      .forEach((post) => {
+        const node = document.createElement('article');
+        node.className = 'forum-post';
+        node.innerHTML = `
+          <strong>${post.title}</strong>
+          <p>${post.message}</p>
+          <div class="muted">${post.author} • ${new Date(post.createdAt).toLocaleString('ru-RU')}</div>
+        `;
+        ui.forumList.appendChild(node);
+      });
+  }
+
+  function renderCabinetTabs() {
+    ui.cabinetTabs.innerHTML = '';
+
+    SPACE_DATA.cabinetSections.forEach((tab) => {
+      const btn = document.createElement('button');
+      btn.className = `btn ${activeCabinetTab === tab.id ? 'btn-solid' : ''}`;
+      btn.textContent = tab.title;
+      btn.addEventListener('click', () => {
+        activeCabinetTab = tab.id;
+        renderCabinetContent();
+      });
+      ui.cabinetTabs.appendChild(btn);
+    });
+
+    const logsBtn = document.createElement('button');
+    logsBtn.className = `btn ${activeCabinetTab === 'log' ? 'btn-solid' : ''}`;
+    logsBtn.textContent = 'История действий';
+    logsBtn.addEventListener('click', () => {
+      activeCabinetTab = 'log';
+      renderCabinetContent();
+    });
+    ui.cabinetTabs.appendChild(logsBtn);
+  }
+
+  function renderCabinetContent() {
+    const user = currentUser();
+    if (!user) return;
+
+    ui.cabinetContent.innerHTML = '';
+
+    if (activeCabinetTab === 'log') {
+      const block = document.createElement('article');
+      block.className = 'content-block';
+      block.innerHTML = '<h3>Базовая история действий пользователя</h3>';
+      const list = document.createElement('ul');
+      list.className = 'log-list';
+
+      if (user.progress.actionLog.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = 'Пока нет действий.';
+        list.appendChild(li);
+      } else {
+        user.progress.actionLog.forEach((entry) => {
+          const li = document.createElement('li');
+          li.textContent = entry;
+          list.appendChild(li);
+        });
+      }
+
+      block.appendChild(list);
+      ui.cabinetContent.appendChild(block);
+      return;
+    }
+
+    const tab = SPACE_DATA.cabinetSections.find((item) => item.id === activeCabinetTab);
+    if (!tab) return;
+
+    const done = user.progress.completedSections.includes(tab.id);
+    const block = document.createElement('article');
+    block.className = 'content-block';
+    block.innerHTML = `
+      <h3>${tab.title}</h3>
+      <p>${tab.task}</p>
+      <p class="muted">Статус: ${done ? 'выполнено' : 'не выполнено'}</p>
+    `;
+
+    const markBtn = document.createElement('button');
+    markBtn.className = 'btn';
+    markBtn.textContent = done ? 'Уже засчитано' : 'Засчитать выполнение (+20)';
+    markBtn.disabled = done;
+    markBtn.addEventListener('click', () => {
+      markSectionDone(tab.id);
+      saveState();
+      renderCabinet();
+    });
+    block.appendChild(markBtn);
+
+    if (tab.id === 'achievements') {
+      const uploadWrap = document.createElement('div');
+      uploadWrap.className = 'content-block';
+      uploadWrap.innerHTML = '<h3>Загрузка достижений</h3><p class="muted">Имитация загрузки: добавьте название файла.</p>';
+
+      const form = document.createElement('form');
+      form.className = 'stack';
+      form.innerHTML = `
+        <input type="text" name="achievement" required placeholder="certificate.pdf" />
+        <button class="btn btn-solid" type="submit">Загрузить</button>
+      `;
+
+      const uploaded = document.createElement('ul');
+      uploaded.className = 'log-list';
+      user.progress.uploadedAchievements.forEach((item) => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        uploaded.appendChild(li);
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const field = form.elements.achievement;
+        const filename = String(field.value).trim();
+        if (!filename) return;
+        user.progress.uploadedAchievements.push(filename);
+        user.progress.points += 10;
+        pushAction(user, `Загружено достижение: ${filename} (+10 баллов)`);
+        saveState();
+        renderCabinet();
+      });
+
+      uploadWrap.appendChild(form);
+      uploadWrap.appendChild(uploaded);
+      ui.cabinetContent.appendChild(uploadWrap);
+    }
+
+    const awardsBlock = document.createElement('article');
+    awardsBlock.className = 'content-block';
+    awardsBlock.innerHTML = '<h3>Награды</h3>';
+    const awardsList = document.createElement('ul');
+    awardsList.className = 'log-list';
+
+    if (user.progress.awards.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = 'Пока нет наград.';
+      awardsList.appendChild(li);
+    } else {
+      user.progress.awards.forEach((awardId) => {
+        const award = SPACE_DATA.awards.find((item) => item.id === awardId);
+        if (!award) return;
+        const li = document.createElement('li');
+        li.textContent = `${award.title} (+${award.points})`;
+        awardsList.appendChild(li);
+      });
+    }
+
+    awardsBlock.appendChild(awardsList);
+    ui.cabinetContent.appendChild(block);
+    ui.cabinetContent.appendChild(awardsBlock);
   }
 
   function renderCabinet() {
     const user = currentUser();
-    if (!user) {
-      showView('auth');
-      return;
-    }
+    if (!user) return;
 
-    ensureUserProgress(user.email);
+    ensureUserProgress(user);
+    ui.welcomeLine.textContent = `${user.name}, ваш путь: открыть разделы → изучить материалы → пройти тест → получить баллы и награды.`;
+    ui.statPoints.textContent = user.progress.points;
+    ui.statProgress.textContent = `${getProgressPercent(user)}%`;
+    ui.statAwards.textContent = user.progress.awards.length;
 
-    const rating = state.ratings[user.email];
-    const progress = calculateOverallProgress(user.email);
-
-    ui.welcomeTitle.textContent = `${user.name}, ваш маршрут открыт. Заполните разделы ЛК и заберите награду.`;
-    ui.overallRating.textContent = rating;
-    ui.overallProgress.textContent = `${progress}%`;
-    ui.rewardMessage.textContent = '';
-
-    renderTabs(user.email);
-    renderSectionTasks(user.email);
-    renderRewards(user.email);
-
-    showView('cabinet');
+    renderCabinetTabs();
+    renderCabinetContent();
+    saveState();
   }
 
-  function registerUser(name, email, password) {
-    const exists = state.users.some((user) => user.email === email);
-    if (exists) {
+  function register(name, email, password) {
+    if (findUserByEmail(email)) {
       ui.authMessage.textContent = 'Пользователь с таким email уже существует.';
       return;
     }
 
-    state.users.push({ name, email, password });
-    state.sessionEmail = email;
-    ensureUserProgress(email);
+    const user = {
+      id: crypto.randomUUID(),
+      name,
+      email,
+      password,
+      progress: {
+        points: 0,
+        completedSections: [],
+        completedQuiz: false,
+        quizScore: 0,
+        awards: [],
+        uploadedAchievements: [],
+        actionLog: []
+      }
+    };
+
+    pushAction(user, 'Регистрация завершена');
+
+    state.users.push(user);
+    state.session = email;
     saveState();
-    renderCabinet();
+
+    guardedNavigate('home');
   }
 
-  function loginUser(email, password) {
-    const user = state.users.find((item) => item.email === email && item.password === password);
-    if (!user) {
+  function login(email, password) {
+    const user = findUserByEmail(email);
+    if (!user || user.password !== password) {
       ui.authMessage.textContent = 'Неверный email или пароль.';
       return;
     }
 
-    state.sessionEmail = user.email;
-    ensureUserProgress(user.email);
+    ensureUserProgress(user);
+    state.session = email;
+    pushAction(user, 'Вход выполнен');
     saveState();
-    renderCabinet();
+    guardedNavigate('home');
   }
 
-  function completeTask(taskId) {
+  function logout() {
     const user = currentUser();
-    if (!user) return;
-
-    const list = state.sections[user.email][activeSectionId];
-    if (list.includes(taskId)) return;
-
-    list.push(taskId);
-    state.ratings[user.email] += 10;
+    if (user) {
+      pushAction(user, 'Выход из аккаунта');
+    }
+    state.session = null;
     saveState();
-    renderCabinet();
+    switchView('auth');
   }
 
-  function claimReward() {
-    const user = currentUser();
-    if (!user) return;
-
-    if (!allSectionsCompleted(user.email)) {
-      ui.rewardMessage.textContent = 'Чтобы получить награду, завершите все разделы: история, проекты, карьера, достижения.';
-      return;
-    }
-
-    const rewardId = SPACE_DATA.rewards.final.id;
-    if (!state.rewards[user.email].includes(rewardId)) {
-      state.rewards[user.email].push(rewardId);
-      state.ratings[user.email] += 50;
-      ui.rewardMessage.textContent = 'Поздравляем! Награда получена, полный сценарий завершён.';
-      saveState();
-      renderCabinet();
-      return;
-    }
-
-    ui.rewardMessage.textContent = 'Награда уже получена ранее.';
+  function bindGlobalNav() {
+    document.querySelectorAll('[data-nav]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        guardedNavigate(btn.dataset.nav);
+      });
+    });
   }
 
-  ui.showLogin.addEventListener('click', () => toggleAuth('login'));
-  ui.showRegister.addEventListener('click', () => toggleAuth('register'));
+  ui.tabLogin.addEventListener('click', () => switchAuth('login'));
+  ui.tabRegister.addEventListener('click', () => switchAuth('register'));
 
   ui.registerForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const name = document.getElementById('register-name').value.trim();
     const email = document.getElementById('register-email').value.trim().toLowerCase();
     const password = document.getElementById('register-password').value;
-    registerUser(name, email, password);
+    register(name, email, password);
   });
 
   ui.loginForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const email = document.getElementById('login-email').value.trim().toLowerCase();
     const password = document.getElementById('login-password').value;
-    loginUser(email, password);
+    login(email, password);
   });
 
-  ui.tasksList.addEventListener('click', (event) => {
-    const btn = event.target.closest('[data-task-id]');
-    if (!btn) return;
-    completeTask(btn.dataset.taskId);
-  });
+  ui.goNews.addEventListener('click', () => openSection('news'));
+  ui.logoutBtn.addEventListener('click', logout);
+  ui.cabinetLogout.addEventListener('click', logout);
 
-  ui.claimRewardBtn.addEventListener('click', claimReward);
+  ui.forumForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const user = currentUser();
+    if (!user) return;
 
-  ui.logoutBtn.addEventListener('click', () => {
-    state.sessionEmail = null;
+    const titleEl = document.getElementById('forum-title');
+    const msgEl = document.getElementById('forum-message');
+
+    const post = {
+      id: crypto.randomUUID(),
+      author: user.name,
+      title: titleEl.value.trim(),
+      message: msgEl.value.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    if (!post.title || !post.message) return;
+
+    state.forumPosts.push(post);
+    pushAction(user, `Опубликована тема на форуме: "${post.title}"`);
+    titleEl.value = '';
+    msgEl.value = '';
     saveState();
-    showView('auth');
+    renderForum();
   });
 
-  if (state.sessionEmail) {
-    ensureUserProgress(state.sessionEmail);
-    renderCabinet();
+  bindGlobalNav();
+
+  if (state.session && currentUser()) {
+    guardedNavigate('home');
   } else {
-    showView('auth');
-    toggleAuth('login');
+    switchView('auth');
+    switchAuth('login');
   }
 })();
