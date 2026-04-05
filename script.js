@@ -43,7 +43,12 @@
     actionLog: document.getElementById('action-log'),
 
     forumForm: document.getElementById('forum-form'),
-    forumList: document.getElementById('forum-list')
+    forumList: document.getElementById('forum-list'),
+
+    articleModal: document.getElementById('article-modal'),
+    articleModalTitle: document.getElementById('article-modal-title'),
+    articleModalBody: document.getElementById('article-modal-body'),
+    articleModalClose: document.getElementById('article-modal-close')
   };
 
   function createInitialState() {
@@ -162,11 +167,11 @@
 
   function renderPlanetNav() {
     ui.planetNav.innerHTML = '';
-    SPACE_DATA.sections.forEach((section) => {
+    SPACE_DATA.sections.forEach((section, index) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `planet ${activeSection === section.id ? 'active' : ''}`;
-      btn.textContent = section.title;
+      btn.className = `planet planet-${(index % 6) + 1} ${activeSection === section.id ? 'active' : ''}`;
+      btn.innerHTML = `<span class="planet-label">${section.title}</span><span class="planet-detail"></span>`;
       btn.addEventListener('click', () => {
         activeSection = section.id;
         renderSection();
@@ -204,9 +209,34 @@
     section.items.forEach((item) => {
       const card = document.createElement('article');
       card.className = 'card';
-      card.textContent = item;
+
+      if (typeof item === 'string') {
+        card.textContent = item;
+        ui.sectionContent.appendChild(card);
+        return;
+      }
+
+      card.innerHTML = `
+        <strong>${item.title}</strong>
+        <p class="muted">${item.excerpt}</p>
+        <button class="btn" type="button">Читать статью</button>
+      `;
+
+      const readBtn = card.querySelector('button');
+      readBtn.addEventListener('click', () => openArticle(item.title, item.content));
       ui.sectionContent.appendChild(card);
     });
+  }
+
+
+  function openArticle(title, content) {
+    ui.articleModalTitle.textContent = title;
+    ui.articleModalBody.textContent = content;
+    ui.articleModal.classList.remove('hidden');
+  }
+
+  function closeArticle() {
+    ui.articleModal.classList.add('hidden');
   }
 
   function renderQuiz(section) {
@@ -397,6 +427,18 @@
 
     ui.achievementForm.reset();
     renderProfile();
+  });
+
+  ui.articleModalClose.addEventListener('click', closeArticle);
+
+  ui.articleModal.addEventListener('click', (event) => {
+    if (event.target === ui.articleModal) closeArticle();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !ui.articleModal.classList.contains('hidden')) {
+      closeArticle();
+    }
   });
 
   ui.logoutBtn.addEventListener('click', () => {

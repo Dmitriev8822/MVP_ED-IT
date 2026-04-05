@@ -18,7 +18,7 @@ body {
 }
 
 .app {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
 }
@@ -156,31 +156,140 @@ textarea {
 }
 
 .planet-nav {
-  display: flex;
-  flex-wrap: wrap;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
   gap: 0.8rem;
-  align-items: center;
+  align-items: stretch;
+  min-height: min(82vh, 860px);
+  width: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 75% 15%, rgba(255, 255, 255, 0.18) 0 2px, transparent 3px),
+    radial-gradient(circle at 60% 70%, rgba(255, 255, 255, 0.22) 0 2px, transparent 3px),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px),
+    #000;
+  border: 1px solid #1e1e1e;
+  border-radius: 16px;
+  padding: 1.2rem;
 }
 
 .planet {
-  width: 74px;
-  height: 74px;
+  border: 0;
   border-radius: 50%;
-  border: 1px solid var(--fg);
-  background: radial-gradient(circle at 30% 30%, #fff 1px, #0c0c0c 45%, #000 70%);
   color: var(--fg);
   display: grid;
   place-items: center;
   text-align: center;
   font-size: 0.72rem;
-  padding: 0.3rem;
+  padding: 0.5rem;
+  position: relative;
+  align-self: center;
+  justify-self: center;
+  isolation: isolate;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.planet::before,
+.planet::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+
+.planet-label {
+  font-weight: 600;
+  max-width: 80%;
+  line-height: 1.2;
+}
+
+.planet-detail {
+  position: absolute;
+  inset: 9% 10%;
+  border-radius: 50%;
+  background: linear-gradient(130deg, transparent 25%, rgba(255, 255, 255, 0.16) 40%, transparent 62%);
+}
+
+.planet-1 {
+  width: 210px;
+  height: 210px;
+  grid-column: 1 / span 4;
+  background: radial-gradient(circle at 30% 30%, #9f86d4 0 28%, #7057b5 52%, #3f2f75 100%);
+}
+
+.planet-1::before {
+  inset: 22% 14% 44% 36%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.planet-2 {
+  width: 250px;
+  height: 250px;
+  grid-column: 5 / span 4;
+  background: radial-gradient(circle at 32% 30%, #84a7ff 0 26%, #466bcc 58%, #1f2d66 100%);
+}
+
+.planet-2::before {
+  inset: 38% 18% 26% 20%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 45% 55% 52% 48% / 50% 49% 51% 50%;
+}
+
+.planet-3 {
+  width: 190px;
+  height: 190px;
+  grid-column: 9 / span 3;
+  background: radial-gradient(circle at 30% 28%, #f1dce7 0 28%, #d8bec8 62%, #836e77 100%);
+}
+
+.planet-3::after {
+  inset: -12% 8% 58% 8%;
+  border-top: 3px solid rgba(255, 255, 255, 0.36);
+  border-radius: 50%;
+}
+
+.planet-4 {
+  width: 220px;
+  height: 220px;
+  grid-column: 3 / span 4;
+  background: radial-gradient(circle at 30% 32%, #8f1f58 0 20%, #5f0d39 58%, #2a061b 100%);
+}
+
+.planet-4::before {
+  inset: 20% 18% 44% 24%;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.planet-5 {
+  width: 170px;
+  height: 170px;
+  grid-column: 8 / span 3;
+  background: radial-gradient(circle at 36% 26%, #eac8f4 0 25%, #d39fe4 60%, #72507d 100%);
+}
+
+.planet-5::before {
+  inset: 34% 32% 24% 16%;
+  border: 1px dashed rgba(255, 255, 255, 0.32);
+}
+
+.planet-6 {
+  width: 160px;
+  height: 160px;
+  grid-column: 11 / span 2;
+  background: radial-gradient(circle at 26% 28%, #5654af 0 20%, #272471 60%, #0e0d3e 100%);
+}
+
+.planet-6::before {
+  inset: 40% 26% 22% 26%;
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .planet:hover,
 .planet:focus-visible,
 .planet.active {
-  background: #fff;
-  color: #000;
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 14px 30px rgba(255, 255, 255, 0.18);
+  outline: 2px solid rgba(255, 255, 255, 0.7);
 }
 
 .metrics {
@@ -198,6 +307,46 @@ textarea {
   min-height: 1.2rem;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: grid;
+  place-items: center;
+  z-index: 30;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(720px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  position: relative;
+  background: #090909;
+}
+
+.modal-close {
+  float: right;
+}
+
+@media (max-width: 980px) {
+  .planet-nav {
+    grid-template-columns: repeat(6, 1fr);
+    min-height: auto;
+  }
+
+  .planet-1,
+  .planet-2,
+  .planet-3,
+  .planet-4,
+  .planet-5,
+  .planet-6 {
+    width: 150px;
+    height: 150px;
+    grid-column: auto;
+  }
+}
+
 @media (max-width: 760px) {
   .topline,
   .highlight-head {
@@ -207,5 +356,13 @@ textarea {
 
   .metrics {
     grid-template-columns: 1fr;
+  }
+
+  .planet-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: auto;
+    padding: 0.9rem;
   }
 }
