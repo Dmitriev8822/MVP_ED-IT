@@ -1,13 +1,13 @@
 (() => {
-  const STORAGE_KEY = 'kosmos_proto_state_v2';
-  const SECTION_IDS = Object.keys(SPACE_DATA.sections);
-
+  const STORAGE_KEY = 'orbit_mvp_v1';
   const state = loadState();
-  let activeSectionId = SECTION_IDS[0];
+  let activeSection = 'history';
 
   const views = {
     auth: document.getElementById('auth-view'),
-    cabinet: document.getElementById('cabinet-view')
+    main: document.getElementById('main-view'),
+    forum: document.getElementById('forum-view'),
+    profile: document.getElementById('profile-view')
   };
 
   const ui = {
@@ -16,42 +16,55 @@
     loginForm: document.getElementById('login-form'),
     registerForm: document.getElementById('register-form'),
     authMessage: document.getElementById('auth-message'),
-    welcomeTitle: document.getElementById('welcome-title'),
-    overallProgress: document.getElementById('overall-progress'),
-    overallRating: document.getElementById('overall-rating'),
-    rewardCount: document.getElementById('reward-count'),
-    logoutBtn: document.getElementById('logout-btn'),
-    sectionTabs: document.getElementById('section-tabs'),
+
+    welcomeText: document.getElementById('welcome-text'),
+    planetNav: document.getElementById('planet-nav'),
     sectionTitle: document.getElementById('section-title'),
     sectionDescription: document.getElementById('section-description'),
-    tasksList: document.getElementById('tasks-list'),
-    claimRewardBtn: document.getElementById('claim-reward-btn'),
-    rewardMessage: document.getElementById('reward-message'),
-    rewardBadges: document.getElementById('reward-badges')
+    sectionContent: document.getElementById('section-content'),
+    headlineNews: document.getElementById('headline-news'),
+
+    jumpNewsBtn: document.getElementById('jump-news-btn'),
+    openProfileBtn: document.getElementById('open-profile-btn'),
+    openForumBtn: document.getElementById('open-forum-btn'),
+    logoutBtn: document.getElementById('logout-btn'),
+
+    profileBackBtn: document.getElementById('profile-back-btn'),
+    forumBackBtn: document.getElementById('forum-back-btn'),
+
+    pointsValue: document.getElementById('points-value'),
+    progressValue: document.getElementById('progress-value'),
+    rewardsValue: document.getElementById('rewards-value'),
+    profileSections: document.getElementById('profile-sections'),
+
+    achievementForm: document.getElementById('achievement-form'),
+    uploadedAchievements: document.getElementById('uploaded-achievements'),
+
+    actionLog: document.getElementById('action-log'),
+
+    forumForm: document.getElementById('forum-form'),
+    forumList: document.getElementById('forum-list')
   };
 
   function createInitialState() {
     return {
       users: [],
       sessionEmail: null,
-      ratings: {},
-      sections: {},
-      rewards: {}
+      progress: {},
+      forum: [...SPACE_DATA.forumSeed]
     };
   }
 
   function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createInitialState();
-
     try {
       const parsed = JSON.parse(raw);
       return {
         users: Array.isArray(parsed.users) ? parsed.users : [],
         sessionEmail: parsed.sessionEmail || null,
-        ratings: parsed.ratings || {},
-        sections: parsed.sections || {},
-        rewards: parsed.rewards || {}
+        progress: parsed.progress || {},
+        forum: Array.isArray(parsed.forum) ? parsed.forum : [...SPACE_DATA.forumSeed]
       };
     } catch {
       return createInitialState();
@@ -63,26 +76,30 @@
   }
 
   function currentUser() {
-    return state.users.find((user) => user.email === state.sessionEmail) || null;
+    return state.users.find((u) => u.email === state.sessionEmail) || null;
   }
 
-  function ensureUserProgress(email) {
-    if (!state.sections[email]) {
-      state.sections[email] = SECTION_IDS.reduce((acc, sectionId) => {
-        acc[sectionId] = [];
-        return acc;
-      }, {});
+  function ensureUserData(email) {
+    if (!state.progress[email]) {
+      state.progress[email] = {
+        visitedSections: [],
+        points: 0,
+        rewards: [],
+        quizPassed: false,
+        achievements: [],
+        actions: []
+      };
     }
-    if (typeof state.ratings[email] !== 'number') {
-      state.ratings[email] = 0;
-    }
-    if (!Array.isArray(state.rewards[email])) {
-      state.rewards[email] = [];
-    }
+  }
+
+  function addAction(email, text) {
+    ensureUserData(email);
+    state.progress[email].actions.unshift({ text, at: new Date().toISOString() });
+    state.progress[email].actions = state.progress[email].actions.slice(0, 40);
   }
 
   function showView(name) {
-    Object.values(views).forEach((view) => view.classList.remove('view-active'));
+    Object.values(views).forEach((v) => v.classList.remove('view-active'));
     views[name].classList.add('view-active');
   }
 
@@ -95,158 +112,214 @@
     ui.authMessage.textContent = '';
   }
 
-  function calculateSectionProgress(email, sectionId) {
-    const done = state.sections[email][sectionId].length;
-    const total = SPACE_DATA.sections[sectionId].tasks.length;
-    return Math.round((done / total) * 100);
+  function registerUser(name, email, password) {
+    if (state.users.some((u) => u.email === email)) {
+      ui.authMessage.textContent = 'Пользователь уже существует.';
+      return;
+    }
+    state.users.push({ name, email, password });
+    state.sessionEmail = email;
+    ensureUserData(email);
+    addAction(email, 'Регистрация в системе');
+    saveState();
+    renderMain();
   }
 
-  function calculateOverallProgress(email) {
-    const sum = SECTION_IDS.reduce((acc, sectionId) => acc + calculateSectionProgress(email, sectionId), 0);
-    return Math.round(sum / SECTION_IDS.length);
+  function loginUser(email, password) {
+    const user = state.users.find((u) => u.email === email && u.password === password);
+    if (!user) {
+      ui.authMessage.textContent = 'Неверный email или пароль.';
+      return;
+    }
+    state.sessionEmail = email;
+    ensureUserData(email);
+    addAction(email, 'Вход в систему');
+    saveState();
+    renderMain();
   }
 
-  function allSectionsCompleted(email) {
-    return SECTION_IDS.every((sectionId) => calculateSectionProgress(email, sectionId) === 100);
+  function markSectionVisited(sectionId) {
+    const user = currentUser();
+    if (!user) return;
+    ensureUserData(user.email);
+    const data = state.progress[user.email];
+    if (!data.visitedSections.includes(sectionId)) {
+      data.visitedSections.push(sectionId);
+      data.points += 10;
+      addAction(user.email, `Открыт раздел: ${sectionId}`);
+
+      const required = ['history', 'modern', 'news', 'success'];
+      const allVisited = required.every((id) => data.visitedSections.includes(id));
+      if (allVisited && !data.rewards.includes(SPACE_DATA.rewards.explorer.id)) {
+        data.rewards.push(SPACE_DATA.rewards.explorer.id);
+        data.points += SPACE_DATA.rewards.explorer.points;
+        addAction(user.email, 'Получена награда: Исследователь разделов');
+      }
+
+      saveState();
+    }
   }
 
-  function renderTabs(email) {
-    ui.sectionTabs.innerHTML = '';
-
-    SECTION_IDS.forEach((sectionId) => {
-      const data = SPACE_DATA.sections[sectionId];
-      const progress = calculateSectionProgress(email, sectionId);
-      const button = document.createElement('button');
-      button.className = `primary-btn section-tab ${activeSectionId === sectionId ? 'is-active' : ''}`;
-      button.textContent = `${data.title} • ${progress}%`;
-      button.addEventListener('click', () => {
-        activeSectionId = sectionId;
-        renderCabinet();
+  function renderPlanetNav() {
+    ui.planetNav.innerHTML = '';
+    SPACE_DATA.sections.forEach((section) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `planet ${activeSection === section.id ? 'active' : ''}`;
+      btn.textContent = section.title;
+      btn.addEventListener('click', () => {
+        activeSection = section.id;
+        renderSection();
       });
-      ui.sectionTabs.appendChild(button);
+      ui.planetNav.appendChild(btn);
     });
   }
 
-  function renderSectionTasks(email) {
-    const section = SPACE_DATA.sections[activeSectionId];
-    const doneIds = state.sections[email][activeSectionId];
+  function renderNewsHighlight() {
+    ui.headlineNews.innerHTML = '';
+    SPACE_DATA.newsTop.forEach((news) => {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `<strong>${news.title}</strong><div class="muted">${news.date}</div>`;
+      ui.headlineNews.appendChild(card);
+    });
+  }
+
+  function renderSection() {
+    const section = SPACE_DATA.sections.find((s) => s.id === activeSection);
+    if (!section) return;
 
     ui.sectionTitle.textContent = section.title;
-    ui.sectionDescription.textContent = section.description;
-    ui.tasksList.innerHTML = '';
+    ui.sectionDescription.textContent = section.summary;
+    ui.sectionContent.innerHTML = '';
+    renderPlanetNav();
 
-    section.tasks.forEach((task) => {
-      const done = doneIds.includes(task.id);
-      const card = document.createElement('div');
-      card.className = 'profile-card';
-      card.innerHTML = `
-        <strong>${task.label}</strong>
-        <div class="pixel-label">${done ? 'Статус: выполнено' : 'Статус: в процессе'}</div>
-        <button class="complete-btn" data-task-id="${task.id}">${done ? 'Готово ✓' : 'Отметить выполненным'}</button>
-      `;
-      ui.tasksList.appendChild(card);
+    markSectionVisited(section.id);
+
+    if (section.id === 'quiz') {
+      renderQuiz(section);
+      return;
+    }
+
+    section.items.forEach((item) => {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.textContent = item;
+      ui.sectionContent.appendChild(card);
     });
   }
 
-  function renderRewards(email) {
-    const rewardIds = state.rewards[email];
-    ui.rewardCount.textContent = rewardIds.length;
-    ui.rewardBadges.innerHTML = '';
+  function renderQuiz(section) {
+    const user = currentUser();
+    if (!user) return;
+    ensureUserData(user.email);
+    const userData = state.progress[user.email];
 
-    rewardIds.forEach((rewardId) => {
-      const reward = Object.values(SPACE_DATA.rewards).find((item) => item.id === rewardId);
-      if (!reward) return;
-      const badge = document.createElement('div');
-      badge.className = 'profile-card';
-      badge.innerHTML = `<strong>${reward.title}</strong><div class="pixel-label">${reward.description}</div>`;
-      ui.rewardBadges.appendChild(badge);
+    const wrap = document.createElement('article');
+    wrap.className = 'card';
+    wrap.innerHTML = `<strong>${section.question}</strong>`;
+
+    const options = document.createElement('div');
+    options.className = 'stack';
+    section.options.forEach((option) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn';
+      button.textContent = option.text;
+      button.addEventListener('click', () => {
+        if (option.correct) {
+          if (!userData.quizPassed) {
+            userData.quizPassed = true;
+            userData.points += SPACE_DATA.rewards.quiz.points;
+            userData.rewards.push(SPACE_DATA.rewards.quiz.id);
+            addAction(user.email, 'Тест пройден успешно и выдана награда');
+            saveState();
+          }
+          result.textContent = 'Верно! Баллы и награда начислены.';
+        } else {
+          addAction(user.email, 'Неудачная попытка в тесте');
+          saveState();
+          result.textContent = 'Неверно. Попробуйте ещё раз.';
+        }
+        renderProfile();
+      });
+      options.appendChild(button);
+    });
+
+    const result = document.createElement('p');
+    result.className = 'status';
+    if (userData.quizPassed) {
+      result.textContent = 'Тест уже пройден ранее.';
+    }
+
+    wrap.appendChild(options);
+    wrap.appendChild(result);
+    ui.sectionContent.appendChild(wrap);
+  }
+
+  function renderProfile() {
+    const user = currentUser();
+    if (!user) return;
+    ensureUserData(user.email);
+
+    const data = state.progress[user.email];
+    const progressBase = 5;
+    const done = data.visitedSections.filter((id) => ['history', 'modern', 'news', 'success', 'quiz'].includes(id)).length;
+    const progress = Math.round((done / progressBase) * 100);
+
+    ui.pointsValue.textContent = String(data.points);
+    ui.rewardsValue.textContent = String(data.rewards.length);
+    ui.progressValue.textContent = `${progress}%`;
+
+    ui.profileSections.innerHTML = '';
+    SPACE_DATA.profileBlocks.forEach((block) => {
+      const visited = data.visitedSections.includes(block.id);
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `<strong>${block.title}</strong><p class="muted">${block.text}</p><div>${visited ? 'Статус: просмотрено' : 'Статус: не открыто'}</div>`;
+      ui.profileSections.appendChild(card);
+    });
+
+    ui.uploadedAchievements.innerHTML = '';
+    data.achievements.forEach((a) => {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `<strong>${a.title}</strong><div class="muted">Файл: ${a.fileName}</div><div class="muted">${a.date}</div>`;
+      ui.uploadedAchievements.appendChild(card);
+    });
+
+    ui.actionLog.innerHTML = '';
+    data.actions.forEach((entry) => {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `<div>${entry.text}</div><div class="muted">${entry.at}</div>`;
+      ui.actionLog.appendChild(card);
     });
   }
 
-  function renderCabinet() {
+  function renderForum() {
+    ui.forumList.innerHTML = '';
+    state.forum.forEach((post) => {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `<strong>${post.topic}</strong><div class="muted">${post.user}</div><p>${post.message}</p>`;
+      ui.forumList.appendChild(card);
+    });
+  }
+
+  function renderMain() {
     const user = currentUser();
     if (!user) {
       showView('auth');
       return;
     }
 
-    ensureUserProgress(user.email);
-
-    const rating = state.ratings[user.email];
-    const progress = calculateOverallProgress(user.email);
-
-    ui.welcomeTitle.textContent = `${user.name}, ваш маршрут открыт. Заполните разделы ЛК и заберите награду.`;
-    ui.overallRating.textContent = rating;
-    ui.overallProgress.textContent = `${progress}%`;
-    ui.rewardMessage.textContent = '';
-
-    renderTabs(user.email);
-    renderSectionTasks(user.email);
-    renderRewards(user.email);
-
-    showView('cabinet');
-  }
-
-  function registerUser(name, email, password) {
-    const exists = state.users.some((user) => user.email === email);
-    if (exists) {
-      ui.authMessage.textContent = 'Пользователь с таким email уже существует.';
-      return;
-    }
-
-    state.users.push({ name, email, password });
-    state.sessionEmail = email;
-    ensureUserProgress(email);
-    saveState();
-    renderCabinet();
-  }
-
-  function loginUser(email, password) {
-    const user = state.users.find((item) => item.email === email && item.password === password);
-    if (!user) {
-      ui.authMessage.textContent = 'Неверный email или пароль.';
-      return;
-    }
-
-    state.sessionEmail = user.email;
-    ensureUserProgress(user.email);
-    saveState();
-    renderCabinet();
-  }
-
-  function completeTask(taskId) {
-    const user = currentUser();
-    if (!user) return;
-
-    const list = state.sections[user.email][activeSectionId];
-    if (list.includes(taskId)) return;
-
-    list.push(taskId);
-    state.ratings[user.email] += 10;
-    saveState();
-    renderCabinet();
-  }
-
-  function claimReward() {
-    const user = currentUser();
-    if (!user) return;
-
-    if (!allSectionsCompleted(user.email)) {
-      ui.rewardMessage.textContent = 'Чтобы получить награду, завершите все разделы: история, проекты, карьера, достижения.';
-      return;
-    }
-
-    const rewardId = SPACE_DATA.rewards.final.id;
-    if (!state.rewards[user.email].includes(rewardId)) {
-      state.rewards[user.email].push(rewardId);
-      state.ratings[user.email] += 50;
-      ui.rewardMessage.textContent = 'Поздравляем! Награда получена, полный сценарий завершён.';
-      saveState();
-      renderCabinet();
-      return;
-    }
-
-    ui.rewardMessage.textContent = 'Награда уже получена ранее.';
+    ui.welcomeText.textContent = `Маршрут участника: ${user.name}`;
+    showView('main');
+    renderNewsHighlight();
+    renderSection();
+    renderProfile();
+    renderForum();
   }
 
   ui.showLogin.addEventListener('click', () => toggleAuth('login'));
@@ -267,25 +340,75 @@
     loginUser(email, password);
   });
 
-  ui.tasksList.addEventListener('click', (event) => {
-    const btn = event.target.closest('[data-task-id]');
-    if (!btn) return;
-    completeTask(btn.dataset.taskId);
+  ui.jumpNewsBtn.addEventListener('click', () => {
+    activeSection = 'news';
+    renderSection();
   });
 
-  ui.claimRewardBtn.addEventListener('click', claimReward);
+  ui.openProfileBtn.addEventListener('click', () => {
+    renderProfile();
+    showView('profile');
+  });
+
+  ui.profileBackBtn.addEventListener('click', () => showView('main'));
+
+  ui.openForumBtn.addEventListener('click', () => {
+    renderForum();
+    showView('forum');
+  });
+
+  ui.forumBackBtn.addEventListener('click', () => showView('main'));
+
+  ui.forumForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const user = currentUser();
+    if (!user) return;
+
+    const topic = document.getElementById('forum-topic').value.trim();
+    const message = document.getElementById('forum-message').value.trim();
+    if (!topic || !message) return;
+
+    state.forum.unshift({ user: user.name, topic, message });
+    addAction(user.email, `Создан пост на форуме: ${topic}`);
+    saveState();
+    ui.forumForm.reset();
+    renderForum();
+  });
+
+  ui.achievementForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const user = currentUser();
+    if (!user) return;
+
+    const title = document.getElementById('achievement-title').value.trim();
+    const fileInput = document.getElementById('achievement-file');
+    const file = fileInput.files[0];
+    if (!title || !file) return;
+
+    ensureUserData(user.email);
+    state.progress[user.email].achievements.unshift({
+      title,
+      fileName: file.name,
+      date: new Date().toISOString()
+    });
+    state.progress[user.email].points += 5;
+    addAction(user.email, `Загружено достижение: ${title}`);
+    saveState();
+
+    ui.achievementForm.reset();
+    renderProfile();
+  });
 
   ui.logoutBtn.addEventListener('click', () => {
+    const user = currentUser();
+    if (user) addAction(user.email, 'Выход из системы');
     state.sessionEmail = null;
     saveState();
     showView('auth');
   });
 
+  toggleAuth('login');
   if (state.sessionEmail) {
-    ensureUserProgress(state.sessionEmail);
-    renderCabinet();
-  } else {
-    showView('auth');
-    toggleAuth('login');
+    renderMain();
   }
 })();
