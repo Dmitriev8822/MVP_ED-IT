@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Космический портал</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero" id="top">
+      <div class="stars" aria-hidden="true"></div>
+      <div class="planet planet-1" aria-hidden="true"></div>
+      <div class="planet planet-2" aria-hidden="true"></div>
+      <div class="planet planet-3" aria-hidden="true"></div>
+      <div class="planet planet-4" aria-hidden="true"></div>
+      <div class="hero-content">
+        <p class="hero-subtitle">Космос рядом</p>
+        <h1>История полётов и современная космонавтика</h1>
+        <p>
+          От первых шагов человечества за пределами атмосферы до миссий нового
+          поколения. Листайте ниже, чтобы прочитать материалы полностью.
+        </p>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="section" aria-labelledby="history-title">
+        <div class="section-head">
+          <h2 id="history-title">История космонавтики</h2>
+          <p>
+            Ключевые вехи XX века: первые спутники, первый человек в космосе,
+            высадка на Луну и запуск орбитальных станций.
+          </p>
+        </div>
+        <div class="posts-grid" id="history-posts"></div>
+      </section>
+
+      <section class="section" aria-labelledby="modern-title">
+        <div class="section-head">
+          <h2 id="modern-title">Современная космонавтика</h2>
+          <p>
+            Новая эпоха: многоразовые ракеты, коммерческие миссии, лунные
+            программы, подготовка к полётам на Марс и развитие орбитальной
+            инфраструктуры.
+          </p>
+        </div>
+        <div class="posts-grid" id="modern-posts"></div>
+      </section>
+    </main>
+
+    <dialog class="post-dialog" id="post-dialog">
+      <article>
+        <button class="close-btn" id="close-dialog" aria-label="Закрыть">×</button>
+        <h3 id="dialog-title"></h3>
+        <p class="meta" id="dialog-meta"></p>
+        <div id="dialog-body"></div>
+      </article>
+    </dialog>
+
+    <script src="script.js"></script>
+  </body>
+</html>
