@@ -2,6 +2,7 @@
   const STORAGE_KEY = 'orbit_mvp_v1';
   const state = loadState();
   let activeSection = 'history';
+  let openedArticle = null;
 
   const views = {
     auth: document.getElementById('auth-view'),
@@ -201,12 +202,59 @@
       return;
     }
 
+    if (section.id === 'history' || section.id === 'modern') {
+      renderArticleSection(section);
+      return;
+    }
+
     section.items.forEach((item) => {
       const card = document.createElement('article');
       card.className = 'card';
       card.textContent = item;
       ui.sectionContent.appendChild(card);
     });
+  }
+
+  function renderArticleSection(section) {
+    const fullArticleCard = document.createElement('article');
+    fullArticleCard.className = 'card article-full hidden';
+    ui.sectionContent.appendChild(fullArticleCard);
+
+    section.items.forEach((item, index) => {
+      const card = document.createElement('article');
+      card.className = 'card article-preview';
+
+      const title = document.createElement('strong');
+      title.textContent = item.title;
+
+      const teaser = document.createElement('p');
+      teaser.className = 'muted';
+      teaser.textContent = item.teaser;
+
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'btn';
+      openButton.textContent = 'Открыть полную статью';
+      openButton.addEventListener('click', () => {
+        openedArticle = `${section.id}-${index}`;
+        renderArticleSection(section);
+      });
+
+      card.appendChild(title);
+      card.appendChild(teaser);
+      card.appendChild(openButton);
+      ui.sectionContent.appendChild(card);
+    });
+
+    const selectedIndex = section.items.findIndex((_, index) => openedArticle === `${section.id}-${index}`);
+    if (selectedIndex !== -1) {
+      const selectedArticle = section.items[selectedIndex];
+      fullArticleCard.classList.remove('hidden');
+      fullArticleCard.innerHTML = `
+        <strong>${selectedArticle.title}</strong>
+        <p>${selectedArticle.fullArticle}</p>
+      `;
+    }
   }
 
   function renderQuiz(section) {
