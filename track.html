@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Карьерный трек — CosmoTrack MVP</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="track">
+    <header class="shell-header">
+      <a href="index.html">← Главная</a>
+      <a href="profile.html">Личный кабинет</a>
+      <a href="section.html?section=orbit">Разделы</a>
+    </header>
+    <main class="shell">
+      <h1>Карьерный трек</h1>
+      <section class="card">
+        <h2>Загрузка резюме</h2>
+        <form id="resume-form" class="form-grid">
+          <label>Название файла<input id="resume-name" type="text" required placeholder="resume.pdf" /></label>
+          <button class="btn btn-solid" type="submit">Загрузить</button>
+        </form>
+      </section>
+      <section class="card">
+        <h2>Текущий статус</h2>
+        <div id="track-status"></div>
+      </section>
+    </main>
+
+    <script src="data/content-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

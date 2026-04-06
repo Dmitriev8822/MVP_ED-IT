@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тема форума — CosmoTrack MVP</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="topic">
+    <header class="shell-header">
+      <a href="forum.html">← К темам</a>
+      <a href="profile.html">Профиль</a>
+    </header>
+
+    <main class="shell">
+      <article class="card" id="topic-main"></article>
+      <section class="card">
+        <h3>Комментарии</h3>
+        <form id="comment-form" class="form-grid">
+          <textarea id="comment-text" rows="3" required></textarea>
+          <button class="btn btn-solid" type="submit">Отправить</button>
+        </form>
+        <div id="comments-list"></div>
+      </section>
+    </main>
+
+    <script src="data/content-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
