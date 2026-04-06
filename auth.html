@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Авторизация — CosmoTrack MVP</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="auth">
+    <header class="shell-header">
+      <a href="index.html">← На главную</a>
+      <a href="profile.html">Профиль</a>
+    </header>
+
+    <main class="shell auth-shell">
+      <section class="card">
+        <h1>Вход</h1>
+        <form id="login-form" class="form-grid">
+          <label>Email<input type="email" id="login-email" required /></label>
+          <label>Пароль<input type="password" id="login-password" minlength="4" required /></label>
+          <button type="submit" class="btn btn-solid">Войти</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Регистрация</h2>
+        <form id="register-form" class="form-grid">
+          <label>Имя<input type="text" id="reg-name" required /></label>
+          <label>Email<input type="email" id="reg-email" required /></label>
+          <label>Пароль<input type="password" id="reg-password" minlength="4" required /></label>
+          <button type="submit" class="btn btn-solid">Создать аккаунт</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h3>Тестовые аккаунты</h3>
+        <p class="muted">super@cosmo.local / 1234 (основной админ)</p>
+        <p class="muted">admin@cosmo.local / 1234 (админ)</p>
+        <p id="auth-msg" class="status"></p>
+      </section>
+    </main>
+
+    <script src="data/content-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

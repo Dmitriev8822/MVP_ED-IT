@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Личный кабинет — CosmoTrack MVP</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-page="profile">
+    <header class="shell-header">
+      <a href="index.html">← Главная</a>
+      <a href="section.html?section=orbit">Разделы</a>
+      <a href="track.html">Трек</a>
+      <a href="auth.html" id="logout-link">Выйти</a>
+    </header>
+
+    <main class="shell">
+      <h1>Личный кабинет</h1>
+      <section class="metrics" id="profile-metrics"></section>
+      <section class="card"><h3>Проекты</h3><div id="projects-list"></div></section>
+      <section class="card"><h3>Карьера</h3><div id="career-list"></div></section>
+      <section class="card"><h3>Достижения и награды</h3><div id="awards-list"></div></section>
+      <section class="card"><h3>Этапы трека</h3><div id="track-status-view"></div></section>
+      <section class="card"><h3>История активности</h3><div id="activity-log"></div></section>
+    </main>
+
+    <script src="data/content-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
